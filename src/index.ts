@@ -1,7 +1,17 @@
+import * as dat from "dat.gui";
 import { buildPaletteSync, utils } from "image-q";
 
 import compare from "./comparator";
-import brush from "./brush";
+import { brushes, Brush } from "./brush";
+
+const imageChoices = {
+  "American Gothic":
+    "https://upload.wikimedia.org/wikipedia/commons/7/71/Grant_DeVolson_Wood_-_American_Gothic.jpg",
+  "Mona Lisa":
+    "https://upload.wikimedia.org/wikipedia/commons/thumb/e/ec/Mona_Lisa%2C_by_Leonardo_da_Vinci%2C_from_C2RMF_retouched.jpg/1280px-Mona_Lisa%2C_by_Leonardo_da_Vinci%2C_from_C2RMF_retouched.jpg",
+  "Larry Bird":
+    "https://upload.wikimedia.org/wikipedia/commons/2/2f/Larry_Bird_Lipofsky.jpg",
+};
 
 class PainterApp {
   private statsEl: HTMLParagraphElement;
@@ -14,8 +24,19 @@ class PainterApp {
   private palette: Uint32Array;
   private numStrokesKept: number;
   private numStrokesTried: number;
+  private gui: any;
+  private guiState: {};
+  private brush: Brush;
+  private animationId: number;
 
   public constructor() {
+    this.animationId = -1;
+    this.gui = new dat.GUI();
+    this.guiState = {
+      brush: 0,
+      image: imageChoices["American Gothic"],
+    };
+    this.brush = brushes[0];
     this.numStrokesTried = 0;
     this.numStrokesKept = 0;
     this.palette = new Uint32Array(0);
@@ -31,15 +52,18 @@ class PainterApp {
     //this.srcimg.crossOrigin = "Anonymous";
     this.srcimg.setAttribute("crossOrigin", "");
     this.srcimg.onload = this.start.bind(this);
-    this.srcimg.src =
-      "https://upload.wikimedia.org/wikipedia/commons/7/71/Grant_DeVolson_Wood_-_American_Gothic.jpg";
+    this.srcimg.src = imageChoices["American Gothic"];
     this.sourcePixels = this.image2
       .getContext("2d")
       .createImageData(this.image2.width, this.image2.height);
     this.iterate = this.iterate.bind(this);
+    this.setupGui();
   }
 
   public start() {
+    // stop any current rendering
+    cancelAnimationFrame(this.animationId);
+
     const w = this.srcimg.naturalWidth;
     const h = this.srcimg.naturalHeight;
     const a = w / h;
@@ -53,6 +77,11 @@ class PainterApp {
     this.imageTemp.style.height = hs;
     this.image2.style.width = ws;
     this.image2.style.height = hs;
+
+    const context = this.image1.getContext("2d");
+    context.clearRect(0, 0, this.image1.width, this.image1.height);
+    const context2 = this.imageTemp.getContext("2d");
+    context2.clearRect(0, 0, this.imageTemp.width, this.imageTemp.height);
 
     const ctx = this.image2.getContext("2d");
 
@@ -84,20 +113,58 @@ class PainterApp {
     // convert
     //    this.palette = buildPaletteSync([inPointContainer]);
     const pal = buildPaletteSync([inPointContainer], {
-      colorDistanceFormula: "euclidean", // optional
-      paletteQuantization: "neuquant", // optional
+      colorDistanceFormula: "manhattan", // optional
+      paletteQuantization: "neuquant-float", // optional
       colors: 256, // optional
     });
     this.palette = pal.getPointContainer().toUint32Array();
 
     // now we can start painting!
+    this.numStrokesTried = 0;
+    this.numStrokesKept = 0;
+    this.similarity = Number.MAX_VALUE;
+
     this.iterate();
+  }
+
+  private setupGui() {
+    this.gui
+      .add(this.guiState, "brush", {
+        Round: 0,
+        Pointillist: 1,
+        Boxy: 2,
+        Strips: 3,
+      })
+      .onChange((value) => {
+        this.brush = brushes[value];
+      });
+
+    this.gui.add(this.guiState, "image", imageChoices).onChange((value) => {
+      cancelAnimationFrame(this.animationId);
+      this.animationId = -1;
+      // initiate load of new image
+      this.srcimg.src = value;
+    });
+  }
+
+  private brushStroke(
+    cvs: HTMLCanvasElement,
+    brush: Brush,
+    palette: Uint32Array
+  ) {
+    const ctx = cvs.getContext("2d");
+    brush.paint(ctx, palette);
+    return ctx.getImageData(0, 0, cvs.width, cvs.height);
   }
 
   private iterate() {
     this.numStrokesTried += 1;
     // 1. paint a brush stroke on imageTemp
-    const testimage = brush(this.imageTemp, this.palette);
+    const testimage = this.brushStroke(
+      this.imageTemp,
+      this.brush,
+      this.palette
+    );
 
     // 2. compare images
     const newdiff = compare(testimage, this.sourcePixels);
@@ -135,7 +202,7 @@ class PainterApp {
         this.numStrokesTried +
         "=" +
         this.numStrokesKept / this.numStrokesTried;
-      requestAnimationFrame(this.iterate);
+      this.animationId = requestAnimationFrame(this.iterate);
     } else {
       console.log("THRESHOLD ACHIEVED!!!!!");
     }

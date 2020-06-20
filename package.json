@@ -23,6 +23,7 @@
     "typescript": "^3.9.5"
   },
   "dependencies": {
+    "dat.gui": "^0.7.7",
     "image-q": "^2.1.2"
   }
 }
