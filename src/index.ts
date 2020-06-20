@@ -221,17 +221,25 @@ class PainterApp {
 
     const TARGET = 0.1;
     if (this.similarity > TARGET) {
+      this.updateStats();
+      this.animationId = requestAnimationFrame(this.iterate);
+    } else {
+      console.log("THRESHOLD ACHIEVED!!!!!");
+    }
+  }
+
+  private updateStats() {
+    if (this.numStrokesTried % 100 === 0) {
       // update the text readout.
       this.statsEl.innerText =
-        "" +
+        "Brushstrokes: " +
         this.numStrokesKept +
         "/" +
         this.numStrokesTried +
         "=" +
-        this.numStrokesKept / this.numStrokesTried;
-      this.animationId = requestAnimationFrame(this.iterate);
-    } else {
-      console.log("THRESHOLD ACHIEVED!!!!!");
+        this.numStrokesKept / this.numStrokesTried +
+        "\nSimilarity: " +
+        this.similarity;
     }
   }
 }
