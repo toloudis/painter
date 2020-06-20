@@ -7855,10 +7855,15 @@ Object.defineProperty(exports, "__esModule", {
 
 function c1(a, b) {
   var dist = 0;
+  var dr, dg, db;
 
-  for (var i = 0; i < a.data.length; ++i) {
-    var d = Math.abs(a.data[i] / 255.0 - b.data[i] / 255.0);
-    dist += d * d;
+  for (var i = 0; i < a.data.length; i += 4) {
+    dr = a.data[i] / 255.0 - b.data[i] / 255.0;
+    dist += dr * dr;
+    dg = a.data[i + 1] / 255.0 - b.data[i + 1] / 255.0;
+    dist += dg * dg;
+    db = a.data[i + 2] / 255.0 - b.data[i + 2] / 255.0;
+    dist += db * db;
   }
 
   return dist;
@@ -8062,7 +8067,8 @@ var imageChoices = {
   "Persistence of Memory": "https://images2.minutemediacdn.com/image/upload/c_fill,g_auto,h_1248,w_2220/f_auto,q_auto,w_1100/v1554925323/shape/mentalfloss/clocks_1.png",
   "Larry Bird": "https://upload.wikimedia.org/wikipedia/commons/2/2f/Larry_Bird_Lipofsky.jpg"
 };
-var CANVAS_SIZE = 400;
+var CANVAS_SIZE = 300;
+var NO_PALETTE = new Uint32Array(0);
 
 var PainterApp =
 /** @class */
@@ -8072,7 +8078,8 @@ function () {
     this.gui = new dat.GUI();
     this.guiState = {
       brush: 0,
-      image: imageChoices["American Gothic"]
+      image: imageChoices["American Gothic"],
+      usePalette: true
     };
     this.brush = brush_1.brushes[0];
     this.numStrokesTried = 0;
@@ -8159,6 +8166,13 @@ function () {
   PainterApp.prototype.setupGui = function () {
     var _this = this;
 
+    this.gui.add(this.guiState, "image", imageChoices).onChange(function (value) {
+      cancelAnimationFrame(_this.animationId);
+      _this.animationId = -1; // initiate load of new image
+
+      _this.srcimg.src = value;
+    });
+    this.gui.add(this.guiState, "usePalette");
     this.gui.add(this.guiState, "brush", {
       Round: 0,
       Pointillist: 1,
@@ -8166,12 +8180,6 @@ function () {
       Strips: 3
     }).onChange(function (value) {
       _this.brush = brush_1.brushes[value];
-    });
-    this.gui.add(this.guiState, "image", imageChoices).onChange(function (value) {
-      cancelAnimationFrame(_this.animationId);
-      _this.animationId = -1; // initiate load of new image
-
-      _this.srcimg.src = value;
     });
     this.gui.add(this, "restartPainting").name("Restart");
   };
@@ -8185,7 +8193,7 @@ function () {
   PainterApp.prototype.iterate = function () {
     this.numStrokesTried += 1; // 1. paint a brush stroke on imageTemp
 
-    var testimage = this.brushStroke(this.imageTemp, this.brush, this.palette); // 2. compare images
+    var testimage = this.brushStroke(this.imageTemp, this.brush, this.guiState.usePalette ? this.palette : NO_PALETTE); // 2. compare images
 
     var newdiff = comparator_1.default(testimage, this.sourcePixels); //console.log(newdiff);
     // 3. if new distance is less than previous distance,
@@ -8251,7 +8259,7 @@ var parent = module.bundle.parent;
 if ((!parent || !parent.isParcelRequire) && typeof WebSocket !== 'undefined') {
   var hostname = "" || location.hostname;
   var protocol = location.protocol === 'https:' ? 'wss' : 'ws';
-  var ws = new WebSocket(protocol + '://' + hostname + ':' + "49930" + '/');
+  var ws = new WebSocket(protocol + '://' + hostname + ':' + "51154" + '/');
 
   ws.onmessage = function (event) {
     checkedAssets = {};
