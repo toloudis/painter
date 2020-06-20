@@ -6,12 +6,18 @@ import { brushes, Brush } from "./brush";
 
 const imageChoices = {
   "American Gothic":
-    "https://upload.wikimedia.org/wikipedia/commons/7/71/Grant_DeVolson_Wood_-_American_Gothic.jpg",
+    "https://upload.wikimedia.org/wikipedia/commons/c/cc/Grant_Wood_-_American_Gothic_-_Google_Art_Project.jpg",
   "Mona Lisa":
     "https://upload.wikimedia.org/wikipedia/commons/thumb/e/ec/Mona_Lisa%2C_by_Leonardo_da_Vinci%2C_from_C2RMF_retouched.jpg/1280px-Mona_Lisa%2C_by_Leonardo_da_Vinci%2C_from_C2RMF_retouched.jpg",
+  "Bedroom In Arles":
+    "https://upload.wikimedia.org/wikipedia/commons/thumb/7/76/Vincent_van_Gogh_-_De_slaapkamer_-_Google_Art_Project.jpg/2560px-Vincent_van_Gogh_-_De_slaapkamer_-_Google_Art_Project.jpg",
+  "Persistence of Memory":
+    "https://images2.minutemediacdn.com/image/upload/c_fill,g_auto,h_1248,w_2220/f_auto,q_auto,w_1100/v1554925323/shape/mentalfloss/clocks_1.png",
   "Larry Bird":
     "https://upload.wikimedia.org/wikipedia/commons/2/2f/Larry_Bird_Lipofsky.jpg",
 };
+
+const CANVAS_SIZE = 400;
 
 class PainterApp {
   private statsEl: HTMLParagraphElement;
@@ -52,6 +58,7 @@ class PainterApp {
     //this.srcimg.crossOrigin = "Anonymous";
     this.srcimg.setAttribute("crossOrigin", "");
     this.srcimg.onload = this.start.bind(this);
+    this.srcimg.crossOrigin = "";
     this.srcimg.src = imageChoices["American Gothic"];
     this.sourcePixels = this.image2
       .getContext("2d")
@@ -61,27 +68,29 @@ class PainterApp {
   }
 
   public start() {
-    // stop any current rendering
-    cancelAnimationFrame(this.animationId);
-
     const w = this.srcimg.naturalWidth;
     const h = this.srcimg.naturalHeight;
     const a = w / h;
-    const tgtw = 200;
-    const tgth = 200 / a;
+    let tgtw = CANVAS_SIZE;
+    let tgth = CANVAS_SIZE / a;
+    if (a > 1) {
+      tgth = CANVAS_SIZE;
+      tgtw = CANVAS_SIZE * a;
+    }
     const ws = "" + tgtw + "px";
     const hs = "" + tgth + "px";
     this.image1.style.width = ws;
     this.image1.style.height = hs;
+    this.image1.width = tgtw;
+    this.image1.height = tgth;
     this.imageTemp.style.width = ws;
     this.imageTemp.style.height = hs;
+    this.imageTemp.width = tgtw;
+    this.imageTemp.height = tgth;
     this.image2.style.width = ws;
     this.image2.style.height = hs;
-
-    const context = this.image1.getContext("2d");
-    context.clearRect(0, 0, this.image1.width, this.image1.height);
-    const context2 = this.imageTemp.getContext("2d");
-    context2.clearRect(0, 0, this.imageTemp.width, this.imageTemp.height);
+    this.image2.width = tgtw;
+    this.image2.height = tgth;
 
     const ctx = this.image2.getContext("2d");
 
@@ -119,6 +128,19 @@ class PainterApp {
     });
     this.palette = pal.getPointContainer().toUint32Array();
 
+    this.restartPainting();
+  }
+
+  private restartPainting() {
+    // stop any current rendering
+    cancelAnimationFrame(this.animationId);
+
+    // clear the canvas
+    const context = this.image1.getContext("2d");
+    context.clearRect(0, 0, this.image1.width, this.image1.height);
+    const context2 = this.imageTemp.getContext("2d");
+    context2.clearRect(0, 0, this.imageTemp.width, this.imageTemp.height);
+
     // now we can start painting!
     this.numStrokesTried = 0;
     this.numStrokesKept = 0;
@@ -145,6 +167,8 @@ class PainterApp {
       // initiate load of new image
       this.srcimg.src = value;
     });
+
+    this.gui.add(this, "restartPainting").name("Restart");
   }
 
   private brushStroke(
