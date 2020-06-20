@@ -8079,7 +8079,9 @@ function () {
     this.guiState = {
       brush: 0,
       image: imageChoices["American Gothic"],
-      usePalette: true
+      usePalette: true,
+      alpha0: 1,
+      alpha1: 1
     };
     this.brush = brush_1.brushes[0];
     this.numStrokesTried = 0;
@@ -8181,11 +8183,14 @@ function () {
     }).onChange(function (value) {
       _this.brush = brush_1.brushes[value];
     });
+    this.gui.add(this.guiState, "alpha0", 0, 1);
+    this.gui.add(this.guiState, "alpha1", 0, 1);
     this.gui.add(this, "restartPainting").name("Restart");
   };
 
   PainterApp.prototype.brushStroke = function (cvs, brush, palette) {
     var ctx = cvs.getContext("2d");
+    ctx.globalAlpha = Math.random() * Math.abs(this.guiState.alpha1 - this.guiState.alpha0) + Math.min(this.guiState.alpha0, this.guiState.alpha1);
     brush.paint(ctx, palette);
     return ctx.getImageData(0, 0, cvs.width, cvs.height);
   };
@@ -8265,7 +8270,7 @@ var parent = module.bundle.parent;
 if ((!parent || !parent.isParcelRequire) && typeof WebSocket !== 'undefined') {
   var hostname = "" || location.hostname;
   var protocol = location.protocol === 'https:' ? 'wss' : 'ws';
-  var ws = new WebSocket(protocol + '://' + hostname + ':' + "52993" + '/');
+  var ws = new WebSocket(protocol + '://' + hostname + ':' + "53136" + '/');
 
   ws.onmessage = function (event) {
     checkedAssets = {};
