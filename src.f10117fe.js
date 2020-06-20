@@ -5062,9 +5062,9 @@ function brush(cvs, palette) {
   //   } else {
   //     brushBox(ctx);
   //   }
+  //pointillist(ctx, palette);
 
-  pointillist(ctx, palette); //brush1(ctx, palette);
-  //brushSmallRound(ctx);
+  brush1(ctx, palette); //brushSmallRound(ctx);
   //brushBox(ctx);
   //brush2(ctx);
 
@@ -5112,6 +5112,7 @@ function () {
     this.srcimg.onload = this.start.bind(this);
     this.srcimg.src = "https://upload.wikimedia.org/wikipedia/commons/7/71/Grant_DeVolson_Wood_-_American_Gothic.jpg";
     this.sourcePixels = this.image2.getContext("2d").createImageData(this.image2.width, this.image2.height);
+    this.iterate = this.iterate.bind(this);
   }
 
   PainterApp.prototype.start = function () {
@@ -5178,7 +5179,7 @@ function () {
     if (this.similarity > TARGET) {
       // update the text readout.
       this.statsEl.innerText = "" + this.numStrokesKept + "/" + this.numStrokesTried + "=" + this.numStrokesKept / this.numStrokesTried;
-      setTimeout(this.iterate.bind(this), 0);
+      requestAnimationFrame(this.iterate);
     } else {
       console.log("THRESHOLD ACHIEVED!!!!!");
     }
@@ -5216,7 +5217,7 @@ var parent = module.bundle.parent;
 if ((!parent || !parent.isParcelRequire) && typeof WebSocket !== 'undefined') {
   var hostname = "" || location.hostname;
   var protocol = location.protocol === 'https:' ? 'wss' : 'ws';
-  var ws = new WebSocket(protocol + '://' + hostname + ':' + "57689" + '/');
+  var ws = new WebSocket(protocol + '://' + hostname + ':' + "64614" + '/');
 
   ws.onmessage = function (event) {
     checkedAssets = {};
