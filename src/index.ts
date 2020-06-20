@@ -124,8 +124,8 @@ class PainterApp {
     // convert
     //    this.palette = buildPaletteSync([inPointContainer]);
     const pal = buildPaletteSync([inPointContainer], {
-      colorDistanceFormula: "manhattan", // optional
-      paletteQuantization: "neuquant-float", // optional
+      //colorDistanceFormula: "manhattan", // optional
+      //paletteQuantization: "neuquant-float", // optional
       colors: 256, // optional
     });
     this.palette = pal.getPointContainer().toUint32Array();
@@ -204,8 +204,8 @@ class PainterApp {
       //grab the context from your destination canvas
       var destCtx = this.image1.getContext("2d");
 
-      //call its drawImage() function passing it the source canvas directly
-      destCtx.drawImage(this.imageTemp, 0, 0);
+      destCtx.putImageData(testimage, 0, 0);
+      //destCtx.drawImage(this.imageTemp, 0, 0);
 
       this.numStrokesKept += 1;
     }
