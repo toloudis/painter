@@ -4,6 +4,7 @@ import compare from "./comparator";
 import brush from "./brush";
 
 class PainterApp {
+  private statsEl: HTMLParagraphElement;
   private image1: HTMLCanvasElement;
   private image2: HTMLCanvasElement;
   private imageTemp: HTMLCanvasElement;
@@ -11,15 +12,21 @@ class PainterApp {
   private sourcePixels: ImageData;
   private similarity: number;
   private palette: Uint32Array;
+  private numStrokesKept: number;
+  private numStrokesTried: number;
 
   public constructor() {
+    this.numStrokesTried = 0;
+    this.numStrokesKept = 0;
     this.palette = new Uint32Array(0);
     this.similarity = Number.MAX_VALUE;
     this.image1 = document.createElement("canvas");
     this.imageTemp = document.createElement("canvas");
     this.image2 = document.createElement("canvas");
+    this.statsEl = document.createElement("p");
     document.body.appendChild(this.image1);
     document.body.appendChild(this.image2);
+    document.body.appendChild(this.statsEl);
     this.srcimg = new Image();
     //this.srcimg.crossOrigin = "Anonymous";
     this.srcimg.setAttribute("crossOrigin", "");
@@ -87,6 +94,7 @@ class PainterApp {
   }
 
   private iterate() {
+    this.numStrokesTried += 1;
     // 1. paint a brush stroke on imageTemp
     const testimage = brush(this.imageTemp, this.palette);
 
@@ -103,6 +111,8 @@ class PainterApp {
 
       //call its drawImage() function passing it the source canvas directly
       destCtx.drawImage(this.imageTemp, 0, 0);
+
+      this.numStrokesKept += 1;
     }
     // 4. else don't
     else {
@@ -116,6 +126,14 @@ class PainterApp {
 
     const TARGET = 0.1;
     if (this.similarity > TARGET) {
+      // update the text readout.
+      this.statsEl.innerText =
+        "" +
+        this.numStrokesKept +
+        "/" +
+        this.numStrokesTried +
+        "=" +
+        this.numStrokesKept / this.numStrokesTried;
       setTimeout(this.iterate.bind(this), 0);
     } else {
       console.log("THRESHOLD ACHIEVED!!!!!");

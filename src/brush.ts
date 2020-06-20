@@ -13,6 +13,19 @@ function getRandomColor(palette: Uint32Array) {
   }
 }
 
+function pointillist(ctx: CanvasRenderingContext2D, palette: Uint32Array) {
+  ctx.fillStyle = getRandomColor(palette);
+  //ctx.globalAlpha = 0.4 + Math.random() * 0.6;
+
+  const x = Math.random() * ctx.canvas.width;
+  const y = Math.random() * ctx.canvas.height;
+  const rx = Math.random() * ctx.canvas.width * 0.03125;
+  const ry = rx;
+  ctx.beginPath();
+  ctx.ellipse(x, y, rx, ry, 0, 0, 2 * Math.PI);
+  ctx.fill();
+}
+
 function brush1(ctx: CanvasRenderingContext2D, palette: Uint32Array) {
   ctx.fillStyle = getRandomColor(palette);
   //ctx.globalAlpha = 0.4 + Math.random() * 0.6;
