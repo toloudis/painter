@@ -36,6 +36,7 @@ class PainterApp {
     this.sourcePixels = this.image2
       .getContext("2d")
       .createImageData(this.image2.width, this.image2.height);
+    this.iterate = this.iterate.bind(this);
   }
 
   public start() {
@@ -134,7 +135,7 @@ class PainterApp {
         this.numStrokesTried +
         "=" +
         this.numStrokesKept / this.numStrokesTried;
-      setTimeout(this.iterate.bind(this), 0);
+      requestAnimationFrame(this.iterate);
     } else {
       console.log("THRESHOLD ACHIEVED!!!!!");
     }
