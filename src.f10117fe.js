@@ -8140,8 +8140,8 @@ function () {
     //    this.palette = buildPaletteSync([inPointContainer]);
 
     var pal = image_q_1.buildPaletteSync([inPointContainer], {
-      colorDistanceFormula: "manhattan",
-      paletteQuantization: "neuquant-float",
+      //colorDistanceFormula: "manhattan", // optional
+      //paletteQuantization: "neuquant-float", // optional
       colors: 256
     });
     this.palette = pal.getPointContainer().toUint32Array();
@@ -8203,9 +8203,9 @@ function () {
       this.similarity = newdiff; // copy temp image into image1
       //grab the context from your destination canvas
 
-      var destCtx = this.image1.getContext("2d"); //call its drawImage() function passing it the source canvas directly
+      var destCtx = this.image1.getContext("2d");
+      destCtx.putImageData(testimage, 0, 0); //destCtx.drawImage(this.imageTemp, 0, 0);
 
-      destCtx.drawImage(this.imageTemp, 0, 0);
       this.numStrokesKept += 1;
     } // 4. else don't
     else {
@@ -8265,7 +8265,7 @@ var parent = module.bundle.parent;
 if ((!parent || !parent.isParcelRequire) && typeof WebSocket !== 'undefined') {
   var hostname = "" || location.hostname;
   var protocol = location.protocol === 'https:' ? 'wss' : 'ws';
-  var ws = new WebSocket(protocol + '://' + hostname + ':' + "51419" + '/');
+  var ws = new WebSocket(protocol + '://' + hostname + ':' + "52993" + '/');
 
   ws.onmessage = function (event) {
     checkedAssets = {};
