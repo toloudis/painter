@@ -43,6 +43,8 @@ class PainterApp {
       brush: 0,
       image: imageChoices["American Gothic"],
       usePalette: true,
+      alpha0: 1,
+      alpha1: 1,
     };
     this.brush = brushes[0];
     this.numStrokesTried = 0;
@@ -171,6 +173,9 @@ class PainterApp {
         this.brush = brushes[value];
       });
 
+    this.gui.add(this.guiState, "alpha0", 0, 1);
+    this.gui.add(this.guiState, "alpha1", 0, 1);
+
     this.gui.add(this, "restartPainting").name("Restart");
   }
 
@@ -180,6 +185,9 @@ class PainterApp {
     palette: Uint32Array
   ) {
     const ctx = cvs.getContext("2d");
+    ctx.globalAlpha =
+      Math.random() * Math.abs(this.guiState.alpha1 - this.guiState.alpha0) +
+      Math.min(this.guiState.alpha0, this.guiState.alpha1);
     brush.paint(ctx, palette);
     return ctx.getImageData(0, 0, cvs.width, cvs.height);
   }
