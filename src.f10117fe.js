@@ -4985,6 +4985,18 @@ function getRandomColor(palette) {
   }
 }
 
+function pointillist(ctx, palette) {
+  ctx.fillStyle = getRandomColor(palette); //ctx.globalAlpha = 0.4 + Math.random() * 0.6;
+
+  var x = Math.random() * ctx.canvas.width;
+  var y = Math.random() * ctx.canvas.height;
+  var rx = Math.random() * ctx.canvas.width * 0.03125;
+  var ry = rx;
+  ctx.beginPath();
+  ctx.ellipse(x, y, rx, ry, 0, 0, 2 * Math.PI);
+  ctx.fill();
+}
+
 function brush1(ctx, palette) {
   ctx.fillStyle = getRandomColor(palette); //ctx.globalAlpha = 0.4 + Math.random() * 0.6;
 
@@ -5051,7 +5063,8 @@ function brush(cvs, palette) {
   //     brushBox(ctx);
   //   }
 
-  brush1(ctx, palette); //brushSmallRound(ctx);
+  pointillist(ctx, palette); //brush1(ctx, palette);
+  //brushSmallRound(ctx);
   //brushBox(ctx);
   //brush2(ctx);
 
@@ -5082,13 +5095,17 @@ var PainterApp =
 /** @class */
 function () {
   function PainterApp() {
+    this.numStrokesTried = 0;
+    this.numStrokesKept = 0;
     this.palette = new Uint32Array(0);
     this.similarity = Number.MAX_VALUE;
     this.image1 = document.createElement("canvas");
     this.imageTemp = document.createElement("canvas");
     this.image2 = document.createElement("canvas");
+    this.statsEl = document.createElement("p");
     document.body.appendChild(this.image1);
     document.body.appendChild(this.image2);
+    document.body.appendChild(this.statsEl);
     this.srcimg = new Image(); //this.srcimg.crossOrigin = "Anonymous";
 
     this.srcimg.setAttribute("crossOrigin", "");
@@ -5131,7 +5148,8 @@ function () {
   };
 
   PainterApp.prototype.iterate = function () {
-    // 1. paint a brush stroke on imageTemp
+    this.numStrokesTried += 1; // 1. paint a brush stroke on imageTemp
+
     var testimage = brush_1.default(this.imageTemp, this.palette); // 2. compare images
 
     var newdiff = comparator_1.default(testimage, this.sourcePixels); //console.log(newdiff);
@@ -5145,6 +5163,7 @@ function () {
       var destCtx = this.image1.getContext("2d"); //call its drawImage() function passing it the source canvas directly
 
       destCtx.drawImage(this.imageTemp, 0, 0);
+      this.numStrokesKept += 1;
     } // 4. else don't
     else {
         // copy image1 into temp image
@@ -5157,6 +5176,8 @@ function () {
     var TARGET = 0.1;
 
     if (this.similarity > TARGET) {
+      // update the text readout.
+      this.statsEl.innerText = "" + this.numStrokesKept + "/" + this.numStrokesTried + "=" + this.numStrokesKept / this.numStrokesTried;
       setTimeout(this.iterate.bind(this), 0);
     } else {
       console.log("THRESHOLD ACHIEVED!!!!!");
@@ -5195,7 +5216,7 @@ var parent = module.bundle.parent;
 if ((!parent || !parent.isParcelRequire) && typeof WebSocket !== 'undefined') {
   var hostname = "" || location.hostname;
   var protocol = location.protocol === 'https:' ? 'wss' : 'ws';
-  var ws = new WebSocket(protocol + '://' + hostname + ':' + "56535" + '/');
+  var ws = new WebSocket(protocol + '://' + hostname + ':' + "57689" + '/');
 
   ws.onmessage = function (event) {
     checkedAssets = {};
