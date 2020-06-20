@@ -92,6 +92,7 @@ export default function brush(cvs: HTMLCanvasElement, palette: Uint32Array) {
   //   } else {
   //     brushBox(ctx);
   //   }
+  //pointillist(ctx, palette);
   brush1(ctx, palette);
   //brushSmallRound(ctx);
   //brushBox(ctx);
