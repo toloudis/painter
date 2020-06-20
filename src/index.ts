@@ -17,7 +17,8 @@ const imageChoices = {
     "https://upload.wikimedia.org/wikipedia/commons/2/2f/Larry_Bird_Lipofsky.jpg",
 };
 
-const CANVAS_SIZE = 400;
+const CANVAS_SIZE = 300;
+const NO_PALETTE = new Uint32Array(0);
 
 class PainterApp {
   private statsEl: HTMLParagraphElement;
@@ -41,6 +42,7 @@ class PainterApp {
     this.guiState = {
       brush: 0,
       image: imageChoices["American Gothic"],
+      usePalette: true,
     };
     this.brush = brushes[0];
     this.numStrokesTried = 0;
@@ -150,6 +152,14 @@ class PainterApp {
   }
 
   private setupGui() {
+    this.gui.add(this.guiState, "image", imageChoices).onChange((value) => {
+      cancelAnimationFrame(this.animationId);
+      this.animationId = -1;
+      // initiate load of new image
+      this.srcimg.src = value;
+    });
+
+    this.gui.add(this.guiState, "usePalette");
     this.gui
       .add(this.guiState, "brush", {
         Round: 0,
@@ -160,13 +170,6 @@ class PainterApp {
       .onChange((value) => {
         this.brush = brushes[value];
       });
-
-    this.gui.add(this.guiState, "image", imageChoices).onChange((value) => {
-      cancelAnimationFrame(this.animationId);
-      this.animationId = -1;
-      // initiate load of new image
-      this.srcimg.src = value;
-    });
 
     this.gui.add(this, "restartPainting").name("Restart");
   }
@@ -187,7 +190,7 @@ class PainterApp {
     const testimage = this.brushStroke(
       this.imageTemp,
       this.brush,
-      this.palette
+      this.guiState.usePalette ? this.palette : NO_PALETTE
     );
 
     // 2. compare images
