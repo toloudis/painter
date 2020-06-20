@@ -8219,11 +8219,17 @@ function () {
     var TARGET = 0.1;
 
     if (this.similarity > TARGET) {
-      // update the text readout.
-      this.statsEl.innerText = "" + this.numStrokesKept + "/" + this.numStrokesTried + "=" + this.numStrokesKept / this.numStrokesTried;
+      this.updateStats();
       this.animationId = requestAnimationFrame(this.iterate);
     } else {
       console.log("THRESHOLD ACHIEVED!!!!!");
+    }
+  };
+
+  PainterApp.prototype.updateStats = function () {
+    if (this.numStrokesTried % 100 === 0) {
+      // update the text readout.
+      this.statsEl.innerText = "Brushstrokes: " + this.numStrokesKept + "/" + this.numStrokesTried + "=" + this.numStrokesKept / this.numStrokesTried + "\nSimilarity: " + this.similarity;
     }
   };
 
@@ -8259,7 +8265,7 @@ var parent = module.bundle.parent;
 if ((!parent || !parent.isParcelRequire) && typeof WebSocket !== 'undefined') {
   var hostname = "" || location.hostname;
   var protocol = location.protocol === 'https:' ? 'wss' : 'ws';
-  var ws = new WebSocket(protocol + '://' + hostname + ':' + "51154" + '/');
+  var ws = new WebSocket(protocol + '://' + hostname + ':' + "51419" + '/');
 
   ws.onmessage = function (event) {
     checkedAssets = {};
