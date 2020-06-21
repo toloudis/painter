@@ -156,14 +156,17 @@ class PainterApp {
   }
 
   private setupGui() {
-    this.gui.add(this.guiState, "image", imageChoices).onChange((value) => {
-      cancelAnimationFrame(this.animationId);
-      this.animationId = -1;
-      // initiate load of new image
-      this.srcimg.src = value;
-    });
+    this.gui
+      .add(this.guiState, "image", imageChoices)
+      .name("Image")
+      .onChange((value) => {
+        cancelAnimationFrame(this.animationId);
+        this.animationId = -1;
+        // initiate load of new image
+        this.srcimg.src = value;
+      });
 
-    this.gui.add(this.guiState, "usePalette");
+    this.gui.add(this.guiState, "usePalette").name("Limit Palette");
     this.gui
       .add(this.guiState, "brush", {
         Round: 0,
@@ -171,12 +174,13 @@ class PainterApp {
         Boxy: 2,
         Strips: 3,
       })
+      .name("Brush")
       .onChange((value) => {
         this.brush = brushes[value];
       });
 
-    this.gui.add(this.guiState, "alpha0", 0, 1);
-    this.gui.add(this.guiState, "alpha1", 0, 1);
+    this.gui.add(this.guiState, "alpha0", 0, 1).name("Opacity Min");
+    this.gui.add(this.guiState, "alpha1", 0, 1).name("Opacity Max");
 
     this.gui.add(this, "restartPainting").name("Restart");
   }
