@@ -7886,7 +7886,10 @@ function getRandomColor(palette) {
   if (palette.length > 0) {
     var num = palette[Math.floor(Math.random() * palette.length)]; //console.log(num.toString(16));
 
-    return "#" + num.toString(16).substr(2, 6);
+    var str = num.toString(16).substr(2, 6); // bgr --> rgb
+
+    str = str.substr(4, 2) + str.substr(2, 2) + str.substr(0, 2);
+    return "#" + str;
   } else {
     var letters = "0123456789ABCDEF";
     var color = "#";
@@ -8066,6 +8069,7 @@ var imageChoices = {
   "Bedroom In Arles": "https://upload.wikimedia.org/wikipedia/commons/thumb/7/76/Vincent_van_Gogh_-_De_slaapkamer_-_Google_Art_Project.jpg/2560px-Vincent_van_Gogh_-_De_slaapkamer_-_Google_Art_Project.jpg",
   "Persistence of Memory": "https://images2.minutemediacdn.com/image/upload/c_fill,g_auto,h_1248,w_2220/f_auto,q_auto,w_1100/v1554925323/shape/mentalfloss/clocks_1.png",
   "The Shoemaker": "https://uploads6.wikiart.org/images/jacob-lawrence/the-shoemaker-1945(1).jpg",
+  "Sharbat Gula": "https://upload.wikimedia.org/wikipedia/en/b/b4/Sharbat_Gula.jpg",
   "Larry Bird": "https://upload.wikimedia.org/wikipedia/commons/2/2f/Larry_Bird_Lipofsky.jpg"
 };
 var CANVAS_SIZE = 300;
@@ -8140,12 +8144,11 @@ function () {
     this.sourcePixels = ctx.getImageData(0, 0, this.image2.width, this.image2.height); // generate the palette.
 
     var inPointContainer = image_q_1.utils.PointContainer.fromUint8Array(this.sourcePixels.data, this.sourcePixels.width, this.sourcePixels.height); // convert
-    //    this.palette = buildPaletteSync([inPointContainer]);
 
     var pal = image_q_1.buildPaletteSync([inPointContainer], {
       //colorDistanceFormula: "manhattan", // optional
       //paletteQuantization: "neuquant-float", // optional
-      colors: 256
+      colors: 128
     });
     this.palette = pal.getPointContainer().toUint32Array();
     this.restartPainting();
@@ -8169,23 +8172,23 @@ function () {
   PainterApp.prototype.setupGui = function () {
     var _this = this;
 
-    this.gui.add(this.guiState, "image", imageChoices).onChange(function (value) {
+    this.gui.add(this.guiState, "image", imageChoices).name("Image").onChange(function (value) {
       cancelAnimationFrame(_this.animationId);
       _this.animationId = -1; // initiate load of new image
 
       _this.srcimg.src = value;
     });
-    this.gui.add(this.guiState, "usePalette");
+    this.gui.add(this.guiState, "usePalette").name("Limit Palette");
     this.gui.add(this.guiState, "brush", {
       Round: 0,
       Pointillist: 1,
       Boxy: 2,
       Strips: 3
-    }).onChange(function (value) {
+    }).name("Brush").onChange(function (value) {
       _this.brush = brush_1.brushes[value];
     });
-    this.gui.add(this.guiState, "alpha0", 0, 1);
-    this.gui.add(this.guiState, "alpha1", 0, 1);
+    this.gui.add(this.guiState, "alpha0", 0, 1).name("Opacity Min");
+    this.gui.add(this.guiState, "alpha1", 0, 1).name("Opacity Max");
     this.gui.add(this, "restartPainting").name("Restart");
   };
 
@@ -8271,7 +8274,7 @@ var parent = module.bundle.parent;
 if ((!parent || !parent.isParcelRequire) && typeof WebSocket !== 'undefined') {
   var hostname = "" || location.hostname;
   var protocol = location.protocol === 'https:' ? 'wss' : 'ws';
-  var ws = new WebSocket(protocol + '://' + hostname + ':' + "56258" + '/');
+  var ws = new WebSocket(protocol + '://' + hostname + ':' + "56517" + '/');
 
   ws.onmessage = function (event) {
     checkedAssets = {};
