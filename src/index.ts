@@ -13,6 +13,8 @@ const imageChoices = {
     "https://upload.wikimedia.org/wikipedia/commons/thumb/7/76/Vincent_van_Gogh_-_De_slaapkamer_-_Google_Art_Project.jpg/2560px-Vincent_van_Gogh_-_De_slaapkamer_-_Google_Art_Project.jpg",
   "Persistence of Memory":
     "https://images2.minutemediacdn.com/image/upload/c_fill,g_auto,h_1248,w_2220/f_auto,q_auto,w_1100/v1554925323/shape/mentalfloss/clocks_1.png",
+  "The Shoemaker":
+    "https://uploads6.wikiart.org/images/jacob-lawrence/the-shoemaker-1945(1).jpg",
   "Larry Bird":
     "https://upload.wikimedia.org/wikipedia/commons/2/2f/Larry_Bird_Lipofsky.jpg",
 };
