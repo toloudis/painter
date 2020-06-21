@@ -7886,9 +7886,9 @@ function getRandomColor(palette) {
   if (palette.length > 0) {
     var num = palette[Math.floor(Math.random() * palette.length)]; //console.log(num.toString(16));
 
-    var str = num.toString(16).substr(2, 6); // bgr --> rgb
+    var str = num.toString(16); // abgr --> rgb
 
-    str = str.substr(4, 2) + str.substr(2, 2) + str.substr(0, 2);
+    str = str.substr(6, 2) + str.substr(4, 2) + str.substr(2, 2);
     return "#" + str;
   } else {
     var letters = "0123456789ABCDEF";
@@ -8148,7 +8148,7 @@ function () {
     var pal = image_q_1.buildPaletteSync([inPointContainer], {
       //colorDistanceFormula: "manhattan", // optional
       //paletteQuantization: "neuquant-float", // optional
-      colors: 128
+      colors: 256
     });
     this.palette = pal.getPointContainer().toUint32Array();
     this.restartPainting();
@@ -8210,18 +8210,14 @@ function () {
 
     if (newdiff < this.similarity) {
       this.similarity = newdiff; // copy temp image into image1
-      //grab the context from your destination canvas
 
       var destCtx = this.image1.getContext("2d");
-      destCtx.putImageData(testimage, 0, 0); //destCtx.drawImage(this.imageTemp, 0, 0);
-
+      destCtx.drawImage(this.imageTemp, 0, 0);
       this.numStrokesKept += 1;
     } // 4. else don't
     else {
         // copy image1 into temp image
-        //grab the context from your destination canvas
-        var destCtx = this.imageTemp.getContext("2d"); //call its drawImage() function passing it the source canvas directly
-
+        var destCtx = this.imageTemp.getContext("2d");
         destCtx.drawImage(this.image1, 0, 0);
       }
 
@@ -8274,7 +8270,7 @@ var parent = module.bundle.parent;
 if ((!parent || !parent.isParcelRequire) && typeof WebSocket !== 'undefined') {
   var hostname = "" || location.hostname;
   var protocol = location.protocol === 'https:' ? 'wss' : 'ws';
-  var ws = new WebSocket(protocol + '://' + hostname + ':' + "56517" + '/');
+  var ws = new WebSocket(protocol + '://' + hostname + ':' + "56666" + '/');
 
   ws.onmessage = function (event) {
     checkedAssets = {};
