@@ -6,7 +6,10 @@ function getRandomColor(palette: Uint32Array) {
   if (palette.length > 0) {
     const num = palette[Math.floor(Math.random() * palette.length)];
     //console.log(num.toString(16));
-    return "#" + num.toString(16).substr(2, 6);
+    let str = num.toString(16);
+    // abgr --> rgb
+    str = str.substr(6, 2) + str.substr(4, 2) + str.substr(2, 2);
+    return "#" + str;
   } else {
     var letters = "0123456789ABCDEF";
     var color = "#";
