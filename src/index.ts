@@ -36,7 +36,13 @@ class PainterApp {
   private numStrokesKept: number;
   private numStrokesTried: number;
   private gui: any;
-  private guiState: {};
+  private guiState: {
+    alpha0: number;
+    alpha1: number;
+    brush: number;
+    image: string;
+    usePalette: boolean;
+  };
   private brush: Brush;
   private animationId: number;
 
@@ -211,26 +217,21 @@ class PainterApp {
     // 2. compare images
     const newdiff = compare(testimage, this.sourcePixels);
     //console.log(newdiff);
+
     // 3. if new distance is less than previous distance,
     //    keep the new image
     if (newdiff < this.similarity) {
       this.similarity = newdiff;
       // copy temp image into image1
-      //grab the context from your destination canvas
       var destCtx = this.image1.getContext("2d");
-
-      destCtx.putImageData(testimage, 0, 0);
-      //destCtx.drawImage(this.imageTemp, 0, 0);
+      destCtx.drawImage(this.imageTemp, 0, 0);
 
       this.numStrokesKept += 1;
     }
     // 4. else don't
     else {
       // copy image1 into temp image
-      //grab the context from your destination canvas
       var destCtx = this.imageTemp.getContext("2d");
-
-      //call its drawImage() function passing it the source canvas directly
       destCtx.drawImage(this.image1, 0, 0);
     }
 
