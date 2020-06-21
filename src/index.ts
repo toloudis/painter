@@ -15,6 +15,8 @@ const imageChoices = {
     "https://images2.minutemediacdn.com/image/upload/c_fill,g_auto,h_1248,w_2220/f_auto,q_auto,w_1100/v1554925323/shape/mentalfloss/clocks_1.png",
   "The Shoemaker":
     "https://uploads6.wikiart.org/images/jacob-lawrence/the-shoemaker-1945(1).jpg",
+  "Sharbat Gula":
+    "https://upload.wikimedia.org/wikipedia/en/b/b4/Sharbat_Gula.jpg",
   "Larry Bird":
     "https://upload.wikimedia.org/wikipedia/commons/2/2f/Larry_Bird_Lipofsky.jpg",
 };
@@ -126,7 +128,6 @@ class PainterApp {
       this.sourcePixels.height
     );
     // convert
-    //    this.palette = buildPaletteSync([inPointContainer]);
     const pal = buildPaletteSync([inPointContainer], {
       //colorDistanceFormula: "manhattan", // optional
       //paletteQuantization: "neuquant-float", // optional
