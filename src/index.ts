@@ -1,8 +1,8 @@
 import * as dat from "dat.gui";
-import { buildPaletteSync, utils } from "image-q";
+import palette from "get-rgba-palette";
 
 import compare from "./comparator";
-import { brushes, Brush } from "./brush";
+import { brushes, Brush, Palette } from "./brush";
 
 const imageChoices = {
   "American Gothic":
@@ -22,7 +22,7 @@ const imageChoices = {
 };
 
 const CANVAS_SIZE = 300;
-const NO_PALETTE = new Uint32Array(0);
+const NO_PALETTE = [];
 
 class PainterApp {
   private statsEl: HTMLParagraphElement;
@@ -32,9 +32,10 @@ class PainterApp {
   private srcimg: HTMLImageElement;
   private sourcePixels: ImageData;
   private similarity: number;
-  private palette: Uint32Array;
+  private palette: Palette;
   private numStrokesKept: number;
   private numStrokesTried: number;
+  private play: boolean;
   private gui: any;
   private guiState: {
     alpha0: number;
@@ -47,7 +48,8 @@ class PainterApp {
   private animationId: number;
 
   public constructor() {
-    this.animationId = -1;
+    this.play = false;
+    this.animationId = 0;
     this.gui = new dat.GUI();
     this.guiState = {
       brush: 0,
@@ -59,7 +61,7 @@ class PainterApp {
     this.brush = brushes[0];
     this.numStrokesTried = 0;
     this.numStrokesKept = 0;
-    this.palette = new Uint32Array(0);
+    this.palette = [];
     this.similarity = Number.MAX_VALUE;
     this.image1 = document.createElement("canvas");
     this.imageTemp = document.createElement("canvas");
@@ -82,6 +84,8 @@ class PainterApp {
   }
 
   public start() {
+    this.play = false;
+
     const w = this.srcimg.naturalWidth;
     const h = this.srcimg.naturalHeight;
     const a = w / h;
@@ -120,33 +124,29 @@ class PainterApp {
       this.image2.width,
       this.image2.height
     );
-    // now grab the downsampled pixels and hold onto them
-    this.sourcePixels = ctx.getImageData(
-      0,
-      0,
-      this.image2.width,
-      this.image2.height
-    );
-    // generate the palette.
-    const inPointContainer = utils.PointContainer.fromUint8Array(
-      this.sourcePixels.data,
-      this.sourcePixels.width,
-      this.sourcePixels.height
-    );
     // convert
-    const pal = buildPaletteSync([inPointContainer], {
-      //colorDistanceFormula: "manhattan", // optional
-      //paletteQuantization: "neuquant-float", // optional
-      colors: 256, // optional
-    });
-    this.palette = pal.getPointContainer().toUint32Array();
+    const self = this;
+    setTimeout(() => {
+      const pctx = self.image2.getContext("2d");
+      // now grab the downsampled pixels and hold onto them
+      self.sourcePixels = pctx.getImageData(
+        0,
+        0,
+        this.image2.width,
+        this.image2.height
+      );
 
-    this.restartPainting();
+      self.palette = palette(self.sourcePixels.data, 256, 2);
+
+      self.restartPainting();
+    }, 0);
   }
 
   private restartPainting() {
     // stop any current rendering
+    //clearTimeout(this.animationId);
     cancelAnimationFrame(this.animationId);
+    this.animationId = 0;
 
     // clear the canvas
     const context = this.image1.getContext("2d");
@@ -159,6 +159,7 @@ class PainterApp {
     this.numStrokesKept = 0;
     this.similarity = Number.MAX_VALUE;
 
+    this.play = true;
     this.iterate();
   }
 
@@ -167,8 +168,10 @@ class PainterApp {
       .add(this.guiState, "image", imageChoices)
       .name("Image")
       .onChange((value) => {
+        this.play = false;
+        //clearTimeout(this.animationId);
         cancelAnimationFrame(this.animationId);
-        this.animationId = -1;
+        this.animationId = 0;
         // initiate load of new image
         this.srcimg.src = value;
       });
@@ -192,11 +195,7 @@ class PainterApp {
     this.gui.add(this, "restartPainting").name("Restart");
   }
 
-  private brushStroke(
-    cvs: HTMLCanvasElement,
-    brush: Brush,
-    palette: Uint32Array
-  ) {
+  private brushStroke(cvs: HTMLCanvasElement, brush: Brush, palette: Palette) {
     const ctx = cvs.getContext("2d");
     ctx.globalAlpha =
       Math.random() * Math.abs(this.guiState.alpha1 - this.guiState.alpha0) +
@@ -224,7 +223,9 @@ class PainterApp {
       this.similarity = newdiff;
       // copy temp image into image1
       var destCtx = this.image1.getContext("2d");
+      destCtx.globalCompositeOperation = "copy";
       destCtx.drawImage(this.imageTemp, 0, 0);
+      //      destCtx.globalCompositeOperation = "source-over";
 
       this.numStrokesKept += 1;
     }
@@ -232,15 +233,15 @@ class PainterApp {
     else {
       // copy image1 into temp image
       var destCtx = this.imageTemp.getContext("2d");
+      //destCtx.globalCompositeOperation = "copy";
       destCtx.drawImage(this.image1, 0, 0);
+      //      destCtx.globalCompositeOperation = "source-over";
     }
 
     const TARGET = 0.1;
-    if (this.similarity > TARGET) {
+    if (this.play && this.similarity > TARGET) {
       this.updateStats();
       this.animationId = requestAnimationFrame(this.iterate);
-    } else {
-      console.log("THRESHOLD ACHIEVED!!!!!");
     }
   }
 

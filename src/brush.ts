@@ -1,15 +1,19 @@
+
+type Palette = number[][];
+
 interface Brush {
-  paint(ctx: CanvasRenderingContext2D, palette: Uint32Array): void;
+  paint(ctx: CanvasRenderingContext2D, palette: Palette): void;
 }
 
-function getRandomColor(palette: Uint32Array) {
+function getRandomColor(palette: Palette) {
   if (palette.length > 0) {
     const num = palette[Math.floor(Math.random() * palette.length)];
+    return `rgb(${num[0]},${num[1]},${num[2]})`;
     //console.log(num.toString(16));
-    let str = num.toString(16);
-    // abgr --> rgb
-    str = str.substr(6, 2) + str.substr(4, 2) + str.substr(2, 2);
-    return "#" + str;
+    // let str = num.toString(16);
+    // // abgr --> rgb
+    // str = str.substr(6, 2) + str.substr(4, 2) + str.substr(2, 2);
+    // return "#" + str;
   } else {
     var letters = "0123456789ABCDEF";
     var color = "#";
@@ -21,7 +25,7 @@ function getRandomColor(palette: Uint32Array) {
 }
 
 class Pointillist implements Brush {
-  paint(ctx: CanvasRenderingContext2D, palette: Uint32Array) {
+  paint(ctx: CanvasRenderingContext2D, palette: Palette) {
     ctx.fillStyle = getRandomColor(palette);
     //ctx.globalAlpha = 0.4 + Math.random() * 0.6;
 
@@ -36,7 +40,7 @@ class Pointillist implements Brush {
 }
 
 class Round implements Brush {
-  paint(ctx: CanvasRenderingContext2D, palette: Uint32Array) {
+  paint(ctx: CanvasRenderingContext2D, palette: Palette) {
     ctx.fillStyle = getRandomColor(palette);
     //ctx.globalAlpha = 0.4 + Math.random() * 0.6;
 
@@ -52,7 +56,7 @@ class Round implements Brush {
 }
 
 class Box implements Brush {
-  paint(ctx: CanvasRenderingContext2D, palette: Uint32Array) {
+  paint(ctx: CanvasRenderingContext2D, palette: Palette) {
     ctx.fillStyle = getRandomColor(palette);
     const x = Math.random() * ctx.canvas.width;
     const y = Math.random() * ctx.canvas.height;
@@ -64,7 +68,7 @@ class Box implements Brush {
 }
 
 class SmallRound implements Brush {
-  paint(ctx: CanvasRenderingContext2D, palette: Uint32Array) {
+  paint(ctx: CanvasRenderingContext2D, palette: Palette) {
     ctx.fillStyle = getRandomColor(palette);
 
     const x = Math.random() * ctx.canvas.width;
@@ -79,7 +83,7 @@ class SmallRound implements Brush {
 }
 
 class BoxStrips implements Brush {
-  paint(ctx: CanvasRenderingContext2D, palette: Uint32Array) {
+  paint(ctx: CanvasRenderingContext2D, palette: Palette) {
     ctx.fillStyle = getRandomColor(palette);
 
     const x = Math.random() * ctx.canvas.width;
@@ -106,3 +110,4 @@ const brushes: Brush[] = [
 ];
 export { brushes };
 export { Brush };
+export { Palette };

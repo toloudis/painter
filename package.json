@@ -24,6 +24,7 @@
   },
   "dependencies": {
     "dat.gui": "^0.7.7",
-    "image-q": "^2.1.2"
+    "get-rgba-palette": "^2.0.1",
+    "quantize": "^1.0.2"
   }
 }
