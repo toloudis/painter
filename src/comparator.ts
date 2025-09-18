@@ -36,8 +36,9 @@ export default function compare(a: ImageData, b: ImageData): number {
 
 export function compareSubRegion(
   a: ImageData,
-  b: ImageData, rect: { x: number; y: number; width: number; height: number })
-{
+  b: ImageData,
+  rect: { x: number; y: number; width: number; height: number }
+) {
   let dist = 0;
   let dr, dg, db;
   for (let y = rect.y; y < rect.y + rect.height; y += 1) {
@@ -58,9 +59,9 @@ export function compareSubRegion(
 // b should be larger, and rect is the region in b to compare to a.
 export function compareSubRegion2(
   a: ImageData,
-  b: ImageData, rect: { x: number; y: number; width: number; height: number })
-: number
-{
+  b: ImageData,
+  rect: { x: number; y: number; width: number; height: number }
+): number {
   if (a.width !== rect.width || a.height !== rect.height) {
     throw new Error("a must have same dimensions as rect");
   }
@@ -68,7 +69,7 @@ export function compareSubRegion2(
   let dr, dg, db;
   for (let y = 0; y < rect.height; y += 1) {
     for (let x = 0; x < rect.width; x += STEP_SIZE) {
-      const ai = 4 * ((y) * a.width + (x));
+      const ai = 4 * (y * a.width + x);
       const bi = 4 * ((y + rect.y) * b.width + (x + rect.x));
       dr = a.data[ai] / 255.0 - b.data[bi] / 255.0;
       dist += dr * dr;
