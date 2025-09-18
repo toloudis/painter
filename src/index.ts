@@ -1,7 +1,7 @@
 import * as dat from "dat.gui";
 import RgbQuant from "rgbquant";
 
-import compare, {compareSubRegion2} from "./comparator";
+import compare, { compareSubRegion2 } from "./comparator";
 import { brushes, Brush, Palette } from "./brush";
 
 const imageChoices = {
@@ -25,20 +25,20 @@ const CANVAS_SIZE = 300;
 const NO_PALETTE = [];
 
 function clipRect(rect: Rectangle, canvas: HTMLCanvasElement): Rectangle {
-    // clip bounds:
-    let x = rect.x;
-    let y = rect.y;
-    let xx = rect.x + rect.width;
-    let yy = rect.y + rect.height;
-    x = Math.max(0, x);
-    y = Math.max(0, y);
-    xx = Math.min(canvas.width, xx);
-    yy = Math.min(canvas.height, yy);
-    const clippedRect = { x, y, width: xx - x, height: yy - y };
-    if (clippedRect.width <= 0 || clippedRect.height <= 0) {
-      console.log("empty rect!");
-    }
-    return clippedRect;
+  // clip bounds:
+  let x = rect.x;
+  let y = rect.y;
+  let xx = rect.x + rect.width;
+  let yy = rect.y + rect.height;
+  x = Math.max(0, x);
+  y = Math.max(0, y);
+  xx = Math.min(canvas.width, xx);
+  yy = Math.min(canvas.height, yy);
+  const clippedRect = { x, y, width: xx - x, height: yy - y };
+  if (clippedRect.width <= 0 || clippedRect.height <= 0) {
+    console.log("empty rect!");
+  }
+  return clippedRect;
 }
 
 class PainterApp {
@@ -46,6 +46,7 @@ class PainterApp {
 
   // holds the painted image
   private paintedImageCanvas: HTMLCanvasElement;
+  private paintedImageCtx: CanvasRenderingContext2D;
 
   // holds the reference image
   private referenceImageCanvas: HTMLCanvasElement;
@@ -90,8 +91,11 @@ class PainterApp {
     this.palette = [];
     this.similarity = Number.MAX_VALUE;
     this.paintedImageCanvas = document.createElement("canvas");
+    this.paintedImageCtx = this.paintedImageCanvas.getContext("2d")!;
     this.imageTemp = document.createElement("canvas");
-    this.imageTempCtx = this.imageTemp.getContext('2d', { willReadFrequently: true })!;
+    this.imageTempCtx = this.imageTemp.getContext("2d", {
+      willReadFrequently: true,
+    })!;
     this.referenceImageCanvas = document.createElement("canvas");
     this.statsEl = document.createElement("p");
     document.body.appendChild(this.paintedImageCanvas);
@@ -105,7 +109,10 @@ class PainterApp {
     this.srcimg.src = imageChoices["American Gothic"];
     this.sourcePixels = this.referenceImageCanvas
       .getContext("2d")!
-      .createImageData(this.referenceImageCanvas.width, this.referenceImageCanvas.height);
+      .createImageData(
+        this.referenceImageCanvas.width,
+        this.referenceImageCanvas.height
+      );
     this.iterate = this.iterate.bind(this);
     this.setupGui();
   }
@@ -128,11 +135,14 @@ class PainterApp {
     this.paintedImageCanvas.style.height = hs;
     this.paintedImageCanvas.width = tgtw;
     this.paintedImageCanvas.height = tgth;
+    this.paintedImageCtx = this.paintedImageCanvas.getContext("2d")!;
     this.imageTemp.style.width = ws;
     this.imageTemp.style.height = hs;
     this.imageTemp.width = tgtw;
     this.imageTemp.height = tgth;
-    this.imageTempCtx = this.imageTemp.getContext('2d', { willReadFrequently: true })!;
+    this.imageTempCtx = this.imageTemp.getContext("2d", {
+      willReadFrequently: true,
+    })!;
     this.referenceImageCanvas.style.width = ws;
     this.referenceImageCanvas.style.height = hs;
     this.referenceImageCanvas.width = tgtw;
@@ -209,12 +219,18 @@ class PainterApp {
     this.animationId = 0;
 
     // clear the canvas
-    const context = this.paintedImageCanvas.getContext("2d");
-    if (!context) {
-      throw new Error("cannot get 2d context!");
-    }
-    context.clearRect(0, 0, this.paintedImageCanvas.width, this.paintedImageCanvas.height);
-    this.imageTempCtx.clearRect(0, 0, this.imageTemp.width, this.imageTemp.height);
+    this.paintedImageCtx.clearRect(
+      0,
+      0,
+      this.paintedImageCanvas.width,
+      this.paintedImageCanvas.height
+    );
+    this.imageTempCtx.clearRect(
+      0,
+      0,
+      this.imageTemp.width,
+      this.imageTemp.height
+    );
 
     // now we can start painting!
     this.numStrokesTried = 0;
@@ -257,7 +273,11 @@ class PainterApp {
     this.gui.add(this, "restartPainting").name("Restart");
   }
 
-  private brushStroke(ctx: CanvasRenderingContext2D, brush: Brush, palette: Palette) {
+  private brushStroke(
+    ctx: CanvasRenderingContext2D,
+    brush: Brush,
+    palette: Palette
+  ) {
     ctx.globalAlpha =
       Math.random() * Math.abs(this.guiState.alpha1 - this.guiState.alpha0) +
       Math.min(this.guiState.alpha0, this.guiState.alpha1);
@@ -269,7 +289,10 @@ class PainterApp {
     if (clippedRect.width <= 0 || clippedRect.height <= 0) {
       console.log("empty rect!");
     }
-    return { imageData: ctx.getImageData(0, 0, ctx.canvas.width, ctx.canvas.height), rect: clippedRect };
+    return {
+      imageData: ctx.getImageData(0, 0, ctx.canvas.width, ctx.canvas.height),
+      rect: clippedRect,
+    };
     //return { imageData: ctx.getImageData(rect.x, rect.y, rect.width, rect.height), rect };
   }
 
@@ -278,7 +301,10 @@ class PainterApp {
 
     // optimize for similarity check:
     // 1. get region of planned brushstroke
-    const rect = this.brush.plan(this.imageTempCtx, this.guiState.usePalette ? this.palette : NO_PALETTE);
+    const rect = this.brush.plan(
+      this.imageTempCtx,
+      this.guiState.usePalette ? this.palette : NO_PALETTE
+    );
     const clippedRect = clipRect(rect, this.imageTemp);
 
     // if the clipped rect is empty, skip this iteration
@@ -290,7 +316,12 @@ class PainterApp {
 
     // 2. check similarity of painted image before brushstroke
     const olddiff = compareSubRegion2(
-      this.imageTempCtx.getImageData(clippedRect.x, clippedRect.y, clippedRect.width, clippedRect.height),
+      this.imageTempCtx.getImageData(
+        clippedRect.x,
+        clippedRect.y,
+        clippedRect.width,
+        clippedRect.height
+      ),
       this.sourcePixels,
       clippedRect
     );
@@ -299,21 +330,28 @@ class PainterApp {
     this.imageTempCtx.globalAlpha =
       Math.random() * Math.abs(this.guiState.alpha1 - this.guiState.alpha0) +
       Math.min(this.guiState.alpha0, this.guiState.alpha1);
-    this.brush.paint(this.imageTempCtx, this.guiState.usePalette ? this.palette : NO_PALETTE);
+    this.brush.paint(
+      this.imageTempCtx,
+      this.guiState.usePalette ? this.palette : NO_PALETTE
+    );
 
     // 4. check similarity of painted image after brushstroke
     const newdiff = compareSubRegion2(
-      this.imageTempCtx.getImageData(clippedRect.x, clippedRect.y, clippedRect.width, clippedRect.height),
+      this.imageTempCtx.getImageData(
+        clippedRect.x,
+        clippedRect.y,
+        clippedRect.width,
+        clippedRect.height
+      ),
       this.sourcePixels,
       clippedRect
     );
 
     // 5. if similarity is improved, keep the stroke, else discard it
-    if (newdiff < olddiff){
-      // copy temp image into image1
-      const destCtx = this.paintedImageCanvas.getContext("2d")!;
-      destCtx.globalCompositeOperation = "copy";
-      destCtx.drawImage(this.imageTemp, 0, 0);
+    if (newdiff < olddiff) {
+      // copy temp image into the painting
+      this.paintedImageCtx.globalCompositeOperation = "copy";
+      this.paintedImageCtx.drawImage(this.imageTemp, 0, 0);
       //destCtx.drawImage(this.imageTemp, clippedRect.x, clippedRect.y, clippedRect.width, clippedRect.height, clippedRect.x, clippedRect.y, clippedRect.width, clippedRect.height);
       //      destCtx.globalCompositeOperation = "source-over";
 
@@ -331,15 +369,22 @@ class PainterApp {
     if (this.play && this.similarity > TARGET) {
       this.updateStats();
       this.animationId = requestAnimationFrame(this.iterate);
-    }
-    else {
+    } else {
       console.log("Stopping");
     }
   }
 
   private updateStats() {
     if (this.numStrokesTried % 200 === 0) {
-      this.similarity = compare(this.paintedImageCanvas.getContext("2d")!.getImageData(0, 0, this.paintedImageCanvas.width, this.paintedImageCanvas.height), this.sourcePixels);
+      this.similarity = compare(
+        this.paintedImageCtx.getImageData(
+          0,
+          0,
+          this.paintedImageCanvas.width,
+          this.paintedImageCanvas.height
+        ),
+        this.sourcePixels
+      );
 
       // update the text readout.
       this.statsEl.innerText =

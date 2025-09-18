@@ -1,4 +1,3 @@
-
 type Palette = number[][];
 
 interface Rectangle {
@@ -9,7 +8,7 @@ interface Rectangle {
 }
 
 interface Brush {
-  plan(ctx: CanvasRenderingContext2D, palette:Palette): Rectangle;
+  plan(ctx: CanvasRenderingContext2D, palette: Palette): Rectangle;
   paint(ctx: CanvasRenderingContext2D, palette: Palette): void;
 }
 
@@ -44,17 +43,22 @@ function rotatedEllipseBoundingBox(
   const sin = Math.sin(rot);
   const bx = Math.sqrt(rx * rx * cos * cos + ry * ry * sin * sin);
   const by = Math.sqrt(rx * rx * sin * sin + ry * ry * cos * cos);
-  const bbox = { x: Math.floor(x - bx), y: Math.floor(y - by), width: Math.ceil(2 * bx), height: Math.ceil(2 * by) };
+  const bbox = {
+    x: Math.floor(x - bx),
+    y: Math.floor(y - by),
+    width: Math.ceil(2 * bx),
+    height: Math.ceil(2 * by),
+  };
   return bbox;
 }
 
 class Pointillist implements Brush {
-  private x=0;
-  private y=0
-  private rx=0;
-  private ry=0;
-  private rot=0;
-  private color="";
+  private x = 0;
+  private y = 0;
+  private rx = 0;
+  private ry = 0;
+  private rot = 0;
+  private color = "";
   plan(ctx: CanvasRenderingContext2D, palette: Palette): Rectangle {
     this.x = Math.round(Math.random() * ctx.canvas.width);
     this.y = Math.round(Math.random() * ctx.canvas.height);
@@ -62,7 +66,13 @@ class Pointillist implements Brush {
     this.ry = this.rx;
     this.rot = 0;
     this.color = getRandomColor(palette);
-    return rotatedEllipseBoundingBox(this.x, this.y, this.rx, this.ry, this.rot);
+    return rotatedEllipseBoundingBox(
+      this.x,
+      this.y,
+      this.rx,
+      this.ry,
+      this.rot
+    );
   }
 
   paint(ctx: CanvasRenderingContext2D, palette: Palette) {
@@ -80,12 +90,12 @@ class Pointillist implements Brush {
 }
 
 class Round implements Brush {
-  private x=0;
-  private y=0
-  private rx=0;
-  private ry=0;
-  private rot=0;
-  private color="";
+  private x = 0;
+  private y = 0;
+  private rx = 0;
+  private ry = 0;
+  private rot = 0;
+  private color = "";
   plan(ctx: CanvasRenderingContext2D, palette: Palette): Rectangle {
     this.x = Math.round(Math.random() * ctx.canvas.width);
     this.y = Math.round(Math.random() * ctx.canvas.height);
@@ -93,7 +103,13 @@ class Round implements Brush {
     this.ry = Math.ceil(Math.random() * ctx.canvas.height * 0.125);
     this.rot = Math.random() * Math.PI;
     this.color = getRandomColor(palette);
-    return rotatedEllipseBoundingBox(this.x, this.y, this.rx, this.ry, this.rot);
+    return rotatedEllipseBoundingBox(
+      this.x,
+      this.y,
+      this.rx,
+      this.ry,
+      this.rot
+    );
   }
   paint(ctx: CanvasRenderingContext2D, palette: Palette) {
     ctx.fillStyle = this.color;
@@ -106,11 +122,11 @@ class Round implements Brush {
 }
 
 class Box implements Brush {
-  private x=0;
-  private y=0;
-  private rx=0;
-  private ry=0;
-  private color="";
+  private x = 0;
+  private y = 0;
+  private rx = 0;
+  private ry = 0;
+  private color = "";
   plan(ctx: CanvasRenderingContext2D, palette: Palette): Rectangle {
     this.x = Math.round(Math.random() * ctx.canvas.width);
     this.y = Math.round(Math.random() * ctx.canvas.height);
@@ -127,12 +143,12 @@ class Box implements Brush {
 }
 
 class SmallRound implements Brush {
-  private x=0;
-  private y=0
-  private rx=0;
-  private ry=0;
-  private rot=0;
-  private color="";
+  private x = 0;
+  private y = 0;
+  private rx = 0;
+  private ry = 0;
+  private rot = 0;
+  private color = "";
   plan(ctx: CanvasRenderingContext2D, palette: Palette): Rectangle {
     this.x = Math.round(Math.random() * ctx.canvas.width);
     this.y = Math.round(Math.random() * ctx.canvas.height);
@@ -140,7 +156,13 @@ class SmallRound implements Brush {
     this.ry = Math.ceil(Math.random() * ctx.canvas.height * 0.25);
     this.rot = Math.random() * Math.PI;
     this.color = getRandomColor(palette);
-    return rotatedEllipseBoundingBox(this.x, this.y, this.rx, this.ry, this.rot);
+    return rotatedEllipseBoundingBox(
+      this.x,
+      this.y,
+      this.rx,
+      this.ry,
+      this.rot
+    );
   }
   paint(ctx: CanvasRenderingContext2D, palette: Palette) {
     ctx.fillStyle = this.color;
@@ -152,11 +174,11 @@ class SmallRound implements Brush {
 }
 
 class BoxStrips implements Brush {
-  private x=0;
-  private y=0;
-  private rx=0;
-  private ry=0;
-  private color="";
+  private x = 0;
+  private y = 0;
+  private rx = 0;
+  private ry = 0;
+  private color = "";
   plan(ctx: CanvasRenderingContext2D, palette: Palette): Rectangle {
     this.x = Math.round(Math.random() * ctx.canvas.width);
     this.y = Math.round(Math.random() * ctx.canvas.height);
