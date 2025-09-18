@@ -1,7 +1,7 @@
 import * as dat from "dat.gui";
 import RgbQuant from "rgbquant";
 
-import compare from "./comparator";
+import compare, {compareSubRegion} from "./comparator";
 import { brushes, Brush, Palette } from "./brush";
 
 const imageChoices = {
@@ -29,6 +29,7 @@ class PainterApp {
   private image1: HTMLCanvasElement;
   private image2: HTMLCanvasElement;
   private imageTemp: HTMLCanvasElement;
+  private imageTempCtx: CanvasRenderingContext2D;
   private srcimg: HTMLImageElement;
   private sourcePixels: ImageData;
   private similarity: number;
@@ -65,6 +66,7 @@ class PainterApp {
     this.similarity = Number.MAX_VALUE;
     this.image1 = document.createElement("canvas");
     this.imageTemp = document.createElement("canvas");
+    this.imageTempCtx = this.imageTemp.getContext('2d', { willReadFrequently: true })!;
     this.image2 = document.createElement("canvas");
     this.statsEl = document.createElement("p");
     document.body.appendChild(this.image1);
@@ -77,7 +79,7 @@ class PainterApp {
     this.srcimg.crossOrigin = "";
     this.srcimg.src = imageChoices["American Gothic"];
     this.sourcePixels = this.image2
-      .getContext("2d")
+      .getContext("2d")!
       .createImageData(this.image2.width, this.image2.height);
     this.iterate = this.iterate.bind(this);
     this.setupGui();
@@ -105,12 +107,16 @@ class PainterApp {
     this.imageTemp.style.height = hs;
     this.imageTemp.width = tgtw;
     this.imageTemp.height = tgth;
+    this.imageTempCtx = this.imageTemp.getContext('2d', { willReadFrequently: true })!;
     this.image2.style.width = ws;
     this.image2.style.height = hs;
     this.image2.width = tgtw;
     this.image2.height = tgth;
 
     const ctx = this.image2.getContext("2d");
+    if (!ctx) {
+      throw new Error("cannot get 2d context!");
+    }
 
     // put our reference image into the srcimg canvas
     ctx.drawImage(
@@ -128,6 +134,9 @@ class PainterApp {
     const self = this;
     setTimeout(() => {
       const pctx = self.image2.getContext("2d");
+      if (!pctx) {
+        throw new Error("cannot get 2d context!");
+      }
       // now grab the downsampled pixels and hold onto them
       self.sourcePixels = pctx.getImageData(
         0,
@@ -176,9 +185,11 @@ class PainterApp {
 
     // clear the canvas
     const context = this.image1.getContext("2d");
+    if (!context) {
+      throw new Error("cannot get 2d context!");
+    }
     context.clearRect(0, 0, this.image1.width, this.image1.height);
-    const context2 = this.imageTemp.getContext("2d");
-    context2.clearRect(0, 0, this.imageTemp.width, this.imageTemp.height);
+    this.imageTempCtx.clearRect(0, 0, this.imageTemp.width, this.imageTemp.height);
 
     // now we can start painting!
     this.numStrokesTried = 0;
@@ -221,26 +232,56 @@ class PainterApp {
     this.gui.add(this, "restartPainting").name("Restart");
   }
 
-  private brushStroke(cvs: HTMLCanvasElement, brush: Brush, palette: Palette) {
-    const ctx = cvs.getContext("2d");
+  private brushStroke(ctx: CanvasRenderingContext2D, brush: Brush, palette: Palette) {
     ctx.globalAlpha =
       Math.random() * Math.abs(this.guiState.alpha1 - this.guiState.alpha0) +
       Math.min(this.guiState.alpha0, this.guiState.alpha1);
+    const rect = brush.plan(ctx, palette);
     brush.paint(ctx, palette);
-    return ctx.getImageData(0, 0, cvs.width, cvs.height);
+    // technically only the bounding region of the stroke needs to be returned
+    // clip bounds:
+    let x = rect.x;
+    let y = rect.y;
+    let xx = rect.x + rect.width;
+    let yy = rect.y + rect.height;
+    x = Math.max(0, x);
+    y = Math.max(0, y);
+    xx = Math.min(ctx.canvas.width, xx);
+    yy = Math.min(ctx.canvas.height, yy);
+    const clippedRect = { x, y, width: xx - x, height: yy - y };
+    if (clippedRect.width <= 0 || clippedRect.height <= 0) {
+      console.log("empty rect!");
+    }
+    return { imageData: ctx.getImageData(0, 0, ctx.canvas.width, ctx.canvas.height), rect: clippedRect };
+    //return { imageData: ctx.getImageData(rect.x, rect.y, rect.width, rect.height), rect };
   }
 
   private iterate() {
     this.numStrokesTried += 1;
+
+    // optimize for similarity check:
+    // 1. get region of planned brushstroke
+    // 2. check similarity of painted image before brushstroke
+    // 3. apply brushstroke
+    // 4. check similarity of painted image after brushstroke
+    // 5. if similarity is improved, keep the stroke, else discard it
+
+
     // 1. paint a brush stroke on imageTemp
     const testimage = this.brushStroke(
-      this.imageTemp,
+      this.imageTempCtx,
       this.brush,
       this.guiState.usePalette ? this.palette : NO_PALETTE
     );
 
     // 2. compare images
-    const newdiff = compare(testimage, this.sourcePixels);
+    const newdiff = compare(testimage.imageData, this.sourcePixels);
+    // use subregion distance because the rest of the image is unchanged
+    // const newdiff = compareSubRegion(
+    //   testimage.imageData,
+    //   this.sourcePixels,
+    //   testimage.rect
+    // );
     //console.log(newdiff);
 
     // 3. if new distance is less than previous distance,
@@ -248,7 +289,7 @@ class PainterApp {
     if (newdiff < this.similarity) {
       this.similarity = newdiff;
       // copy temp image into image1
-      var destCtx = this.image1.getContext("2d");
+      const destCtx = this.image1.getContext("2d")!;
       destCtx.globalCompositeOperation = "copy";
       destCtx.drawImage(this.imageTemp, 0, 0);
       //      destCtx.globalCompositeOperation = "source-over";
@@ -258,9 +299,8 @@ class PainterApp {
     // 4. else don't
     else {
       // copy image1 into temp image
-      var destCtx = this.imageTemp.getContext("2d");
       //destCtx.globalCompositeOperation = "copy";
-      destCtx.drawImage(this.image1, 0, 0);
+      this.imageTempCtx.drawImage(this.image1, 0, 0);
       //      destCtx.globalCompositeOperation = "source-over";
     }
 
@@ -268,6 +308,9 @@ class PainterApp {
     if (this.play && this.similarity > TARGET) {
       this.updateStats();
       this.animationId = requestAnimationFrame(this.iterate);
+    }
+    else {
+      console.log("Stopping");
     }
   }
 

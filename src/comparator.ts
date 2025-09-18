@@ -33,3 +33,23 @@ function c2(a: ImageData, b: ImageData): number {
 export default function compare(a: ImageData, b: ImageData): number {
   return c1(a, b);
 }
+
+export function compareSubRegion(
+  a: ImageData,
+  b: ImageData, rect: { x: number; y: number; width: number; height: number })
+{
+  let dist = 0;
+  let dr, dg, db;
+  for (let y = rect.y; y < rect.y + rect.height; y += 1) {
+    for (let x = rect.x; x < rect.x + rect.width; x += STEP_SIZE) {
+      const i = 4 * (y * a.width + x);
+      dr = a.data[i] / 255.0 - b.data[i] / 255.0;
+      dist += dr * dr;
+      dg = a.data[i + 1] / 255.0 - b.data[i + 1] / 255.0;
+      dist += dg * dg;
+      db = a.data[i + 2] / 255.0 - b.data[i + 2] / 255.0;
+      dist += db * db;
+    }
+  }
+  return dist;
+}
