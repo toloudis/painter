@@ -44,7 +44,7 @@ function rotatedEllipseBoundingBox(
   const sin = Math.sin(rot);
   const bx = Math.sqrt(rx * rx * cos * cos + ry * ry * sin * sin);
   const by = Math.sqrt(rx * rx * sin * sin + ry * ry * cos * cos);
-  const bbox = { x: x - bx, y: y - by, width: 2 * bx, height: 2 * by };
+  const bbox = { x: Math.floor(x - bx), y: Math.floor(y - by), width: Math.ceil(2 * bx), height: Math.ceil(2 * by) };
   return bbox;
 }
 
