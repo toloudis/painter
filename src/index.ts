@@ -12,7 +12,7 @@ const imageChoices = {
   "Bedroom In Arles":
     "https://upload.wikimedia.org/wikipedia/commons/thumb/7/76/Vincent_van_Gogh_-_De_slaapkamer_-_Google_Art_Project.jpg/2560px-Vincent_van_Gogh_-_De_slaapkamer_-_Google_Art_Project.jpg",
   "Persistence of Memory":
-    "https://images2.minutemediacdn.com/image/upload/c_fill,g_auto,h_1248,w_2220/f_auto,q_auto,w_1100/v1554925323/shape/mentalfloss/clocks_1.png",
+    "https://miro.medium.com/v2/resize:fit:4800/format:webp/1*aj7olHU0HikYoWwhZipTcg.jpeg",
   "The Shoemaker":
     "https://uploads6.wikiart.org/images/jacob-lawrence/the-shoemaker-1945(1).jpg",
   "Sharbat Gula":
@@ -309,41 +309,19 @@ class PainterApp {
     );
 
     // 5. if similarity is improved, keep the stroke, else discard it
-
-if (false)
-{
-    // 1. paint a brush stroke on imageTemp
-    const testimage = this.brushStroke(
-      this.imageTempCtx,
-      this.brush,
-      this.guiState.usePalette ? this.palette : NO_PALETTE
-    );
-
-    // 2. compare images
-    const newdiff = compare(testimage.imageData, this.sourcePixels);
-    // use subregion distance because the rest of the image is unchanged
-    // const newdiff = compareSubRegion(
-    //   testimage.imageData,
-    //   this.sourcePixels,
-    //   testimage.rect
-    // );
-    //console.log(newdiff);
-}
-    // 3. if new distance is less than previous distance,
-    //    keep the new image
-    if (newdiff < olddiff){//this.similarity) {
-      //this.similarity = newdiff;
+    if (newdiff < olddiff){
       // copy temp image into image1
       const destCtx = this.paintedImageCanvas.getContext("2d")!;
       destCtx.globalCompositeOperation = "copy";
-      destCtx.drawImage(this.imageTemp, 0, 0);//clippedRect.x, clippedRect.y, clippedRect.width, clippedRect.height, clippedRect.x, clippedRect.y, clippedRect.width, clippedRect.height);
+      destCtx.drawImage(this.imageTemp, 0, 0);
+      //destCtx.drawImage(this.imageTemp, clippedRect.x, clippedRect.y, clippedRect.width, clippedRect.height, clippedRect.x, clippedRect.y, clippedRect.width, clippedRect.height);
       //      destCtx.globalCompositeOperation = "source-over";
 
       this.numStrokesKept += 1;
     }
     // 4. else don't
     else {
-      // copy image1 into temp image
+      // copy paintedImageCanvas into temp image (undo-ing the brushstroke)
       //destCtx.globalCompositeOperation = "copy";
       this.imageTempCtx.drawImage(this.paintedImageCanvas, 0, 0);
       //      destCtx.globalCompositeOperation = "source-over";
