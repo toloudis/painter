@@ -1,7 +1,7 @@
 import * as dat from "dat.gui";
 import RgbQuant from "rgbquant";
 
-import compare, { compareSubRegion2 } from "./comparator";
+import compare, { compareSubRegion2, compareSubRegion3 } from "./comparator";
 import { brushes, Brush, Palette } from "./brush";
 
 const imageChoices = {
@@ -94,7 +94,7 @@ class PainterApp {
     this.paintedImageCtx = this.paintedImageCanvas.getContext("2d")!;
     this.imageTemp = document.createElement("canvas");
     this.imageTempCtx = this.imageTemp.getContext("2d", {
-      willReadFrequently: true,
+      willReadFrequently: false,
     })!;
     this.referenceImageCanvas = document.createElement("canvas");
     this.statsEl = document.createElement("p");
@@ -141,7 +141,7 @@ class PainterApp {
     this.imageTemp.width = tgtw;
     this.imageTemp.height = tgth;
     this.imageTempCtx = this.imageTemp.getContext("2d", {
-      willReadFrequently: true,
+      willReadFrequently: false,
     })!;
     this.referenceImageCanvas.style.width = ws;
     this.referenceImageCanvas.style.height = hs;
@@ -315,16 +315,26 @@ class PainterApp {
     }
 
     // 2. check similarity of painted image before brushstroke
-    const olddiff = compareSubRegion2(
-      this.imageTempCtx.getImageData(
-        clippedRect.x,
-        clippedRect.y,
-        clippedRect.width,
-        clippedRect.height
+    const olddiff = compareSubRegion3(
+      this.paintedImageCtx.getImageData(
+        0,
+        0,
+        this.paintedImageCanvas.width,
+        this.paintedImageCanvas.height
       ),
       this.sourcePixels,
       clippedRect
     );
+    // const olddiff = compareSubRegion2(
+    //   this.paintedImageCtx.getImageData(
+    //     clippedRect.x,
+    //     clippedRect.y,
+    //     clippedRect.width,
+    //     clippedRect.height
+    //   ),
+    //   this.sourcePixels,
+    //   clippedRect
+    // );
 
     // 3. apply brushstroke
     this.imageTempCtx.globalAlpha =
@@ -336,13 +346,14 @@ class PainterApp {
     );
 
     // 4. check similarity of painted image after brushstroke
+    const strokeImageData = this.imageTempCtx.getImageData(
+      clippedRect.x,
+      clippedRect.y,
+      clippedRect.width,
+      clippedRect.height
+    );
     const newdiff = compareSubRegion2(
-      this.imageTempCtx.getImageData(
-        clippedRect.x,
-        clippedRect.y,
-        clippedRect.width,
-        clippedRect.height
-      ),
+      strokeImageData,
       this.sourcePixels,
       clippedRect
     );
@@ -352,6 +363,11 @@ class PainterApp {
       // copy temp image into the painting
       this.paintedImageCtx.globalCompositeOperation = "copy";
       this.paintedImageCtx.drawImage(this.imageTemp, 0, 0);
+      // this.paintedImageCtx.putImageData(
+      //   strokeImageData,
+      //   clippedRect.x,
+      //   clippedRect.y
+      // );
       //destCtx.drawImage(this.imageTemp, clippedRect.x, clippedRect.y, clippedRect.width, clippedRect.height, clippedRect.x, clippedRect.y, clippedRect.width, clippedRect.height);
       //      destCtx.globalCompositeOperation = "source-over";
 

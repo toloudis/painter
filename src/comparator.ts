@@ -81,3 +81,30 @@ export function compareSubRegion2(
   }
   return dist;
 }
+
+// a and b are same size
+// rect is the region to compare in both images
+export function compareSubRegion3(
+  a: ImageData,
+  b: ImageData,
+  rect: { x: number; y: number; width: number; height: number }
+): number {
+  if (a.width !== b.width || a.height !== b.height) {
+    throw new Error("a and b must have same dimensions");
+  }
+  let dist = 0;
+  let dr, dg, db;
+  for (let y = 0; y < rect.height; y += 1) {
+    for (let x = 0; x < rect.width; x += STEP_SIZE) {
+      const ai = 4 * ((y + rect.y) * a.width + (x + rect.x));
+      const bi = 4 * ((y + rect.y) * b.width + (x + rect.x));
+      dr = a.data[ai] / 255.0 - b.data[bi] / 255.0;
+      dist += dr * dr;
+      dg = a.data[ai + 1] / 255.0 - b.data[bi + 1] / 255.0;
+      dist += dg * dg;
+      db = a.data[ai + 2] / 255.0 - b.data[bi + 2] / 255.0;
+      dist += db * db;
+    }
+  }
+  return dist;
+}
