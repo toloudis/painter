@@ -1,7 +1,11 @@
 import * as dat from "dat.gui";
 import RgbQuant from "rgbquant";
 
-import compare, { compareSubRegion2, compareSubRegion3 } from "./comparator";
+import compare, {
+  compareSubRegion2,
+  compareSubRegion3,
+  compareSubRegionCv,
+} from "./comparator";
 import { brushes, Brush, Palette, Rectangle } from "./brush";
 import { loadOpenCv } from "./opencv";
 import type { CV, Mat } from "@techstark/opencv-js";
@@ -44,6 +48,7 @@ function clipRect(rect: Rectangle, canvas: HTMLCanvasElement): Rectangle {
 }
 
 class PainterApp {
+  private cv: CV;
   private statsEl: HTMLParagraphElement;
 
   // holds the painted image
@@ -84,6 +89,7 @@ class PainterApp {
     if (!cv) {
       throw new Error("OpenCV not loaded!");
     }
+    this.cv = cv;
 
     this.play = false;
     this.animationId = 0;
@@ -122,6 +128,14 @@ class PainterApp {
     this.srcimg.setAttribute("crossOrigin", "");
     this.srcimg.onload = () => {
       this.cvImgSrc = cv.imread(this.srcimg);
+      cv.resize(
+        this.cvImgSrc,
+        this.cvImgSrc,
+        new cv.Size(CANVAS_SIZE, CANVAS_SIZE),
+        0,
+        0,
+        cv.INTER_AREA
+      );
       cv.imshow(this.referenceImageCanvas, this.cvImgSrc);
       // Define the color in BGR format (Blue, Green, Red)
       // For example, to create a blue image:
@@ -170,11 +184,13 @@ class PainterApp {
     }
     const ws = "" + tgtw + "px";
     const hs = "" + tgth + "px";
+
     this.paintedImageCanvas.style.width = ws;
     this.paintedImageCanvas.style.height = hs;
     this.paintedImageCanvas.width = tgtw;
     this.paintedImageCanvas.height = tgth;
     this.paintedImageCtx = this.paintedImageCanvas.getContext("2d")!;
+
     this.imageTemp.style.width = ws;
     this.imageTemp.style.height = hs;
     this.imageTemp.width = tgtw;
@@ -182,6 +198,7 @@ class PainterApp {
     this.imageTempCtx = this.imageTemp.getContext("2d", {
       willReadFrequently: false,
     })!;
+
     this.referenceImageCanvas.style.width = ws;
     this.referenceImageCanvas.style.height = hs;
     this.referenceImageCanvas.width = tgtw;
@@ -193,17 +210,16 @@ class PainterApp {
     }
 
     // put our reference image into the srcimg canvas
-    ctx.drawImage(
-      this.srcimg,
+    this.cv.resize(
+      this.cvImgSrc!,
+      this.cvImgSrc!,
+      new this.cv.Size(tgtw, tgth),
       0,
       0,
-      this.srcimg.naturalWidth,
-      this.srcimg.naturalHeight,
-      0,
-      0,
-      this.referenceImageCanvas.width,
-      this.referenceImageCanvas.height
+      this.cv.INTER_AREA
     );
+    this.cv.imshow(this.referenceImageCanvas, this.cvImgSrc!);
+
     // convert
     const self = this;
     setTimeout(() => {
@@ -376,12 +392,21 @@ class PainterApp {
     // );
 
     // 3. apply brushstroke
-    this.imageTempCtx.globalAlpha =
+    const alpha =
       Math.random() * Math.abs(this.guiState.alpha1 - this.guiState.alpha0) +
       Math.min(this.guiState.alpha0, this.guiState.alpha1);
+    this.imageTempCtx.globalAlpha = alpha;
     this.brush.paint(
       this.imageTempCtx,
-      this.guiState.usePalette ? this.palette : NO_PALETTE
+      this.guiState.usePalette ? this.palette : NO_PALETTE,
+      alpha
+    );
+
+    this.brush.paintCv(
+      this.cv,
+      this.cvImgTemp!,
+      this.guiState.usePalette ? this.palette : NO_PALETTE,
+      alpha
     );
 
     // 4. check similarity of painted image after brushstroke

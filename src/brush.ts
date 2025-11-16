@@ -1,3 +1,5 @@
+import { CV, Mat } from "@techstark/opencv-js/dist/src/types/opencv";
+
 type Palette = number[][];
 
 interface Rectangle {
@@ -9,7 +11,8 @@ interface Rectangle {
 
 interface Brush {
   plan(ctx: CanvasRenderingContext2D, palette: Palette): Rectangle;
-  paint(ctx: CanvasRenderingContext2D, palette: Palette): void;
+  paint(ctx: CanvasRenderingContext2D, palette: Palette, alpha?: number): void;
+  paintCv(cv: CV, mat: Mat, palette: Palette, alpha: number): void;
 }
 
 function getRandomColor(palette: Palette) {
@@ -75,7 +78,7 @@ class Pointillist implements Brush {
     );
   }
 
-  paint(ctx: CanvasRenderingContext2D, palette: Palette) {
+  paint(ctx: CanvasRenderingContext2D, palette: Palette, alpha?: number) {
     ctx.fillStyle = this.color;
     //ctx.globalAlpha = 0.4 + Math.random() * 0.6;
 
@@ -86,6 +89,25 @@ class Pointillist implements Brush {
     ctx.beginPath();
     ctx.ellipse(this.x, this.y, this.rx, this.ry, 0, 0, 2 * Math.PI);
     ctx.fill();
+  }
+
+  paintCv(cv: CV, mat: Mat, palette: Palette, alpha?: number): void {
+    // Implement OpenCV painting logic here
+    cv.ellipse(
+      mat,
+      new cv.Point(this.x, this.y),
+      new cv.Size(this.rx, this.ry),
+      (this.rot * 180) / Math.PI,
+      0,
+      360,
+      new cv.Scalar(
+        parseInt(this.color.slice(1, 3), 16),
+        parseInt(this.color.slice(3, 5), 16),
+        parseInt(this.color.slice(5, 7), 16),
+        alpha !== undefined ? alpha * 255 : 255
+      ),
+      -1
+    );
   }
 }
 
@@ -111,13 +133,32 @@ class Round implements Brush {
       this.rot
     );
   }
-  paint(ctx: CanvasRenderingContext2D, palette: Palette) {
+  paint(ctx: CanvasRenderingContext2D, palette: Palette, alpha?: number) {
     ctx.fillStyle = this.color;
     //ctx.globalAlpha = 0.4 + Math.random() * 0.6;
 
     ctx.beginPath();
     ctx.ellipse(this.x, this.y, this.rx, this.ry, this.rot, 0, 2 * Math.PI);
     ctx.fill();
+  }
+
+  paintCv(cv: CV, mat: Mat, palette: Palette, alpha?: number): void {
+    // Implement OpenCV painting logic here
+    cv.ellipse(
+      mat,
+      new cv.Point(this.x, this.y),
+      new cv.Size(this.rx, this.ry),
+      (this.rot * 180) / Math.PI,
+      0,
+      360,
+      new cv.Scalar(
+        parseInt(this.color.slice(1, 3), 16),
+        parseInt(this.color.slice(3, 5), 16),
+        parseInt(this.color.slice(5, 7), 16),
+        alpha !== undefined ? alpha * 255 : 255
+      ),
+      -1
+    );
   }
 }
 
@@ -135,10 +176,26 @@ class Box implements Brush {
     this.color = getRandomColor(palette);
     return { x: this.x, y: this.y, width: this.rx, height: this.ry };
   }
-  paint(ctx: CanvasRenderingContext2D, palette: Palette) {
+  paint(ctx: CanvasRenderingContext2D, palette: Palette, alpha?: number) {
     ctx.fillStyle = this.color;
     ctx.beginPath();
     ctx.fillRect(this.x, this.y, this.rx, this.ry);
+  }
+
+  paintCv(cv: CV, mat: Mat, palette: Palette, alpha?: number): void {
+    // Implement OpenCV painting logic here
+    cv.rectangle(
+      mat,
+      new cv.Point(this.x, this.y),
+      new cv.Point(this.x + this.rx, this.y + this.ry),
+      new cv.Scalar(
+        parseInt(this.color.slice(1, 3), 16),
+        parseInt(this.color.slice(3, 5), 16),
+        parseInt(this.color.slice(5, 7), 16),
+        alpha !== undefined ? alpha * 255 : 255
+      ),
+      -1
+    );
   }
 }
 
@@ -164,12 +221,31 @@ class SmallRound implements Brush {
       this.rot
     );
   }
-  paint(ctx: CanvasRenderingContext2D, palette: Palette) {
+  paint(ctx: CanvasRenderingContext2D, palette: Palette, alpha?: number) {
     ctx.fillStyle = this.color;
 
     ctx.beginPath();
     ctx.ellipse(this.x, this.y, this.rx, this.ry, this.rot, 0, 2 * Math.PI);
     ctx.fill();
+  }
+
+  paintCv(cv: CV, mat: Mat, palette: Palette, alpha?: number): void {
+    // Implement OpenCV painting logic here
+    cv.ellipse(
+      mat,
+      new cv.Point(this.x, this.y),
+      new cv.Size(this.rx, this.ry),
+      (this.rot * 180) / Math.PI,
+      0,
+      360,
+      new cv.Scalar(
+        parseInt(this.color.slice(1, 3), 16),
+        parseInt(this.color.slice(3, 5), 16),
+        parseInt(this.color.slice(5, 7), 16),
+        alpha !== undefined ? alpha * 255 : 255
+      ),
+      -1
+    );
   }
 }
 
@@ -194,11 +270,27 @@ class BoxStrips implements Brush {
     this.color = getRandomColor(palette);
     return { x: this.x, y: this.y, width: this.rx, height: this.ry };
   }
-  paint(ctx: CanvasRenderingContext2D, palette: Palette) {
+  paint(ctx: CanvasRenderingContext2D, palette: Palette, alpha?: number) {
     ctx.fillStyle = this.color;
 
     ctx.beginPath();
     ctx.fillRect(this.x, this.y, this.rx, this.ry);
+  }
+
+  paintCv(cv: CV, mat: Mat, palette: Palette, alpha?: number): void {
+    // Implement OpenCV painting logic here
+    cv.rectangle(
+      mat,
+      new cv.Point(this.x, this.y),
+      new cv.Point(this.x + this.rx, this.y + this.ry),
+      new cv.Scalar(
+        parseInt(this.color.slice(1, 3), 16),
+        parseInt(this.color.slice(3, 5), 16),
+        parseInt(this.color.slice(5, 7), 16),
+        alpha !== undefined ? alpha * 255 : 255
+      ),
+      -1
+    );
   }
 }
 

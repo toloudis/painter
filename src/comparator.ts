@@ -1,3 +1,5 @@
+import type { CV, Mat } from "@techstark/opencv-js";
+
 const STEP_SIZE = 1;
 
 // sum of Euclidean distance per pixel
@@ -107,4 +109,13 @@ export function compareSubRegion3(
     }
   }
   return dist;
+}
+
+export function compareSubRegionCv(
+  cv: CV,
+  a: Mat,
+  b: Mat,
+  rect: { x: number; y: number; width: number; height: number }
+): number {
+  return cv.norm(a, b, cv.NORM_L2);
 }
