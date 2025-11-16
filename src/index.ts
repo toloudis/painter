@@ -2,7 +2,9 @@ import * as dat from "dat.gui";
 import RgbQuant from "rgbquant";
 
 import compare, { compareSubRegion2, compareSubRegion3 } from "./comparator";
-import { brushes, Brush, Palette } from "./brush";
+import { brushes, Brush, Palette, Rectangle } from "./brush";
+import { loadOpenCv } from "./opencv";
+import type { CV, Mat } from "@techstark/opencv-js";
 
 const imageChoices = {
   "American Gothic":
@@ -74,7 +76,15 @@ class PainterApp {
   private brush: Brush;
   private animationId: number;
 
-  public constructor() {
+  private cvImgSrc: Mat | undefined;
+  private cvImgTemp: Mat | undefined;
+  private cvImgDst: Mat | undefined;
+
+  public constructor(cv?: CV) {
+    if (!cv) {
+      throw new Error("OpenCV not loaded!");
+    }
+
     this.play = false;
     this.animationId = 0;
     this.gui = new dat.GUI();
@@ -90,21 +100,49 @@ class PainterApp {
     this.numStrokesKept = 0;
     this.palette = [];
     this.similarity = Number.MAX_VALUE;
+
     this.paintedImageCanvas = document.createElement("canvas");
     this.paintedImageCtx = this.paintedImageCanvas.getContext("2d")!;
+
     this.imageTemp = document.createElement("canvas");
     this.imageTempCtx = this.imageTemp.getContext("2d", {
       willReadFrequently: false,
     })!;
+
     this.referenceImageCanvas = document.createElement("canvas");
+
     this.statsEl = document.createElement("p");
+
     document.body.appendChild(this.paintedImageCanvas);
     document.body.appendChild(this.referenceImageCanvas);
     document.body.appendChild(this.statsEl);
+
     this.srcimg = new Image();
     //this.srcimg.crossOrigin = "Anonymous";
     this.srcimg.setAttribute("crossOrigin", "");
-    this.srcimg.onload = this.start.bind(this);
+    this.srcimg.onload = () => {
+      this.cvImgSrc = cv.imread(this.srcimg);
+      cv.imshow(this.referenceImageCanvas, this.cvImgSrc);
+      // Define the color in BGR format (Blue, Green, Red)
+      // For example, to create a blue image:
+      const white = new cv.Scalar(255, 255, 255); // B=255, G=255, R=255
+
+      // Create a new Mat (image) filled with the specified color
+      this.cvImgDst = new cv.Mat(
+        this.cvImgSrc.rows,
+        this.cvImgSrc.cols,
+        cv.CV_8UC3,
+        white
+      );
+      this.cvImgTemp = new cv.Mat(
+        this.cvImgSrc.rows,
+        this.cvImgSrc.cols,
+        cv.CV_8UC3,
+        white
+      );
+
+      this.start();
+    };
     this.srcimg.crossOrigin = "";
     this.srcimg.src = imageChoices["American Gothic"];
     this.sourcePixels = this.referenceImageCanvas
@@ -113,6 +151,7 @@ class PainterApp {
         this.referenceImageCanvas.width,
         this.referenceImageCanvas.height
       );
+
     this.iterate = this.iterate.bind(this);
     this.setupGui();
   }
@@ -416,4 +455,10 @@ class PainterApp {
   }
 }
 
-const mypainter = new PainterApp();
+async function run() {
+  const { cv } = await loadOpenCv();
+  const mypainter = new PainterApp(cv);
+  return mypainter;
+}
+
+const app = run();

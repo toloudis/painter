@@ -211,3 +211,4 @@ const brushes: Brush[] = [
 export { brushes };
 export { Brush };
 export { Palette };
+export { Rectangle };
