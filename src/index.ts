@@ -1,7 +1,7 @@
 import * as dat from "dat.gui";
 import RgbQuant from "rgbquant";
 
-import compare, { compareSubRegion2, compareSubRegion3 } from "./comparator";
+import compare, { compareSubRegion2 } from "./comparator";
 import { brushes, Brush, Palette } from "./brush";
 
 const imageChoices = {
@@ -91,10 +91,12 @@ class PainterApp {
     this.palette = [];
     this.similarity = Number.MAX_VALUE;
     this.paintedImageCanvas = document.createElement("canvas");
-    this.paintedImageCtx = this.paintedImageCanvas.getContext("2d")!;
+    this.paintedImageCtx = this.paintedImageCanvas.getContext("2d", {
+      willReadFrequently: true,
+    })!;
     this.imageTemp = document.createElement("canvas");
     this.imageTempCtx = this.imageTemp.getContext("2d", {
-      willReadFrequently: false,
+      willReadFrequently: true,
     })!;
     this.referenceImageCanvas = document.createElement("canvas");
     this.statsEl = document.createElement("p");
@@ -135,13 +137,15 @@ class PainterApp {
     this.paintedImageCanvas.style.height = hs;
     this.paintedImageCanvas.width = tgtw;
     this.paintedImageCanvas.height = tgth;
-    this.paintedImageCtx = this.paintedImageCanvas.getContext("2d")!;
+    this.paintedImageCtx = this.paintedImageCanvas.getContext("2d", {
+      willReadFrequently: true,
+    })!;
     this.imageTemp.style.width = ws;
     this.imageTemp.style.height = hs;
     this.imageTemp.width = tgtw;
     this.imageTemp.height = tgth;
     this.imageTempCtx = this.imageTemp.getContext("2d", {
-      willReadFrequently: false,
+      willReadFrequently: true,
     })!;
     this.referenceImageCanvas.style.width = ws;
     this.referenceImageCanvas.style.height = hs;
@@ -315,26 +319,16 @@ class PainterApp {
     }
 
     // 2. check similarity of painted image before brushstroke
-    const olddiff = compareSubRegion3(
+    const olddiff = compareSubRegion2(
       this.paintedImageCtx.getImageData(
-        0,
-        0,
-        this.paintedImageCanvas.width,
-        this.paintedImageCanvas.height
+        clippedRect.x,
+        clippedRect.y,
+        clippedRect.width,
+        clippedRect.height
       ),
       this.sourcePixels,
       clippedRect
     );
-    // const olddiff = compareSubRegion2(
-    //   this.paintedImageCtx.getImageData(
-    //     clippedRect.x,
-    //     clippedRect.y,
-    //     clippedRect.width,
-    //     clippedRect.height
-    //   ),
-    //   this.sourcePixels,
-    //   clippedRect
-    // );
 
     // 3. apply brushstroke
     this.imageTempCtx.globalAlpha =
@@ -360,25 +354,15 @@ class PainterApp {
 
     // 5. if similarity is improved, keep the stroke, else discard it
     if (newdiff < olddiff) {
-      // copy temp image into the painting
-      this.paintedImageCtx.globalCompositeOperation = "copy";
-      this.paintedImageCtx.drawImage(this.imageTemp, 0, 0);
-      // this.paintedImageCtx.putImageData(
-      //   strokeImageData,
-      //   clippedRect.x,
-      //   clippedRect.y
-      // );
-      //destCtx.drawImage(this.imageTemp, clippedRect.x, clippedRect.y, clippedRect.width, clippedRect.height, clippedRect.x, clippedRect.y, clippedRect.width, clippedRect.height);
-      //      destCtx.globalCompositeOperation = "source-over";
-
+      this.paintedImageCtx.putImageData(strokeImageData, clippedRect.x, clippedRect.y);
       this.numStrokesKept += 1;
-    }
-    // 4. else don't
-    else {
-      // copy paintedImageCanvas into temp image (undo-ing the brushstroke)
-      //destCtx.globalCompositeOperation = "copy";
-      this.imageTempCtx.drawImage(this.paintedImageCanvas, 0, 0);
-      //      destCtx.globalCompositeOperation = "source-over";
+    } else {
+      // revert only the dirty region in the temp canvas
+      this.imageTempCtx.drawImage(
+        this.paintedImageCanvas,
+        clippedRect.x, clippedRect.y, clippedRect.width, clippedRect.height,
+        clippedRect.x, clippedRect.y, clippedRect.width, clippedRect.height
+      );
     }
 
     const TARGET = 0.1;
