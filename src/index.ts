@@ -9,7 +9,7 @@ const imageChoices = {
   "Mona Lisa":
     "https://upload.wikimedia.org/wikipedia/commons/thumb/e/ec/Mona_Lisa%2C_by_Leonardo_da_Vinci%2C_from_C2RMF_retouched.jpg/1280px-Mona_Lisa%2C_by_Leonardo_da_Vinci%2C_from_C2RMF_retouched.jpg",
   "Bedroom In Arles":
-    "https://upload.wikimedia.org/wikipedia/commons/thumb/7/76/Vincent_van_Gogh_-_De_slaapkamer_-_Google_Art_Project.jpg/2560px-Vincent_van_Gogh_-_De_slaapkamer_-_Google_Art_Project.jpg",
+    "https://upload.wikimedia.org/wikipedia/commons/thumb/7/76/Vincent_van_Gogh_-_De_slaapkamer_-_Google_Art_Project.jpg/3840px-Vincent_van_Gogh_-_De_slaapkamer_-_Google_Art_Project.jpg",
   "Persistence of Memory":
     "https://miro.medium.com/v2/resize:fit:4800/format:webp/1*aj7olHU0HikYoWwhZipTcg.jpeg",
   "The Shoemaker":
