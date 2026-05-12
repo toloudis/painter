@@ -1,6 +1,6 @@
 type Palette = number[][];
 
-interface Rectangle {
+export interface Rectangle {
   x: number;
   y: number;
   width: number;

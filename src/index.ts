@@ -1,8 +1,7 @@
 import * as dat from "dat.gui";
 import RgbQuant from "rgbquant";
 
-import compare, { compareSubRegion2 } from "./comparator";
-import { brushes, Brush, Palette } from "./brush";
+import { brushes, Brush, Palette, Rectangle } from "./brush";
 
 const imageChoices = {
   "American Gothic":
@@ -73,6 +72,11 @@ class PainterApp {
   };
   private brush: Brush;
   private animationId: number;
+
+  // per-pixel squared error (painted vs source), and a scratch copy for proposed strokes
+  private diffBuffer = new Float32Array(0);
+  private diffScratch = new Float32Array(0);
+  private totalDiff = 0;
 
   // accumulated ms for each phase, reset every stats window
   private tPlan = 0;
@@ -254,9 +258,41 @@ class PainterApp {
     this.tAfterCompare = 0;
     this.tCommit = 0;
     this.tFrameStart = performance.now();
+    this.initDiffBuffer();
 
     this.play = true;
     this.iterate();
+  }
+
+  // Seeds diffBuffer with the error between a blank canvas (all 0s) and the reference.
+  private initDiffBuffer() {
+    const w = this.paintedImageCanvas.width;
+    const h = this.paintedImageCanvas.height;
+    const n = w * h;
+    this.diffBuffer = new Float32Array(n);
+    this.diffScratch = new Float32Array(n);
+    this.totalDiff = 0;
+    const src = this.sourcePixels.data;
+    for (let i = 0; i < n; i++) {
+      const ri = 4 * i;
+      const dr = src[ri]     / 255;
+      const dg = src[ri + 1] / 255;
+      const db = src[ri + 2] / 255;
+      const err = dr * dr + dg * dg + db * db;
+      this.diffBuffer[i] = err;
+      this.totalDiff += err;
+    }
+  }
+
+  private sumRect(rect: Rectangle): number {
+    const w = this.paintedImageCanvas.width;
+    let sum = 0;
+    for (let y = rect.y; y < rect.y + rect.height; y++) {
+      for (let x = rect.x; x < rect.x + rect.width; x++) {
+        sum += this.diffBuffer[y * w + x];
+      }
+    }
+    return sum;
   }
 
   private setupGui() {
@@ -334,17 +370,8 @@ class PainterApp {
     let t1 = performance.now();
     this.tPlan += t1 - t0;
 
-    // 2. check similarity of painted image before brushstroke
-    const olddiff = compareSubRegion2(
-      this.paintedImageCtx.getImageData(
-        clippedRect.x,
-        clippedRect.y,
-        clippedRect.width,
-        clippedRect.height
-      ),
-      this.sourcePixels,
-      clippedRect
-    );
+    // 2. before diff: sum pre-computed buffer — no getImageData needed
+    const olddiff = this.sumRect(clippedRect);
 
     let t2 = performance.now();
     this.tBeforeCompare += t2 - t1;
@@ -361,24 +388,42 @@ class PainterApp {
     let t3 = performance.now();
     this.tPaint += t3 - t2;
 
-    // 4. check similarity of painted image after brushstroke
+    // 4. after diff: one getImageData, then inline pixel loop writing errors to diffScratch
     const strokeImageData = this.imageTempCtx.getImageData(
       clippedRect.x,
       clippedRect.y,
       clippedRect.width,
       clippedRect.height
     );
-    const newdiff = compareSubRegion2(
-      strokeImageData,
-      this.sourcePixels,
-      clippedRect
-    );
+    const canvasW = this.paintedImageCanvas.width;
+    const src = this.sourcePixels.data;
+    const sd = strokeImageData.data;
+    let newdiff = 0;
+    for (let y = 0; y < clippedRect.height; y++) {
+      for (let x = 0; x < clippedRect.width; x++) {
+        const si = 4 * (y * clippedRect.width + x);
+        const ri = 4 * ((y + clippedRect.y) * canvasW + (x + clippedRect.x));
+        const dr = sd[si]     / 255 - src[ri]     / 255;
+        const dg = sd[si + 1] / 255 - src[ri + 1] / 255;
+        const db = sd[si + 2] / 255 - src[ri + 2] / 255;
+        const err = dr * dr + dg * dg + db * db;
+        this.diffScratch[(y + clippedRect.y) * canvasW + (x + clippedRect.x)] = err;
+        newdiff += err;
+      }
+    }
 
     let t4 = performance.now();
     this.tAfterCompare += t4 - t3;
 
-    // 5. if similarity is improved, keep the stroke, else discard it
+    // 5. accept or reject
     if (newdiff < olddiff) {
+      // commit: flush diffScratch → diffBuffer for this rect, update running total
+      for (let y = clippedRect.y; y < clippedRect.y + clippedRect.height; y++) {
+        for (let x = clippedRect.x; x < clippedRect.x + clippedRect.width; x++) {
+          this.diffBuffer[y * canvasW + x] = this.diffScratch[y * canvasW + x];
+        }
+      }
+      this.totalDiff += newdiff - olddiff;
       this.paintedImageCtx.putImageData(strokeImageData, clippedRect.x, clippedRect.y);
       this.numStrokesKept += 1;
     } else {
@@ -403,15 +448,7 @@ class PainterApp {
 
   private updateStats() {
     if (this.numStrokesTried % 200 === 0) {
-      this.similarity = compare(
-        this.paintedImageCtx.getImageData(
-          0,
-          0,
-          this.paintedImageCanvas.width,
-          this.paintedImageCanvas.height
-        ),
-        this.sourcePixels
-      );
+      this.similarity = this.totalDiff;
 
       const n = 200;
       const elapsedSec = (performance.now() - this.tFrameStart) / 1000;
