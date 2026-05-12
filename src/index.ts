@@ -234,19 +234,14 @@ class PainterApp {
     cancelAnimationFrame(this.animationId);
     this.animationId = 0;
 
-    // clear the canvas
-    this.paintedImageCtx.clearRect(
-      0,
-      0,
-      this.paintedImageCanvas.width,
-      this.paintedImageCanvas.height
-    );
-    this.imageTempCtx.clearRect(
-      0,
-      0,
-      this.imageTemp.width,
-      this.imageTemp.height
-    );
+    // Fill with white so the algorithmic state (white = max error vs dark reference)
+    // matches what the user sees (transparent canvas renders as white in the browser).
+    this.paintedImageCtx.globalAlpha = 1.0;
+    this.paintedImageCtx.fillStyle = "#ffffff";
+    this.paintedImageCtx.fillRect(0, 0, this.paintedImageCanvas.width, this.paintedImageCanvas.height);
+    this.imageTempCtx.globalAlpha = 1.0;
+    this.imageTempCtx.fillStyle = "#ffffff";
+    this.imageTempCtx.fillRect(0, 0, this.imageTemp.width, this.imageTemp.height);
 
     // now we can start painting!
     this.numStrokesTried = 0;
@@ -275,9 +270,9 @@ class PainterApp {
     const src = this.sourcePixels.data;
     for (let i = 0; i < n; i++) {
       const ri = 4 * i;
-      const dr = src[ri]     / 255;
-      const dg = src[ri + 1] / 255;
-      const db = src[ri + 2] / 255;
+      const dr = 1.0 - src[ri]     / 255;  // painted starts white (1.0)
+      const dg = 1.0 - src[ri + 1] / 255;
+      const db = 1.0 - src[ri + 2] / 255;
       const err = dr * dr + dg * dg + db * db;
       this.diffBuffer[i] = err;
       this.totalDiff += err;
@@ -427,7 +422,9 @@ class PainterApp {
       this.paintedImageCtx.putImageData(strokeImageData, clippedRect.x, clippedRect.y);
       this.numStrokesKept += 1;
     } else {
-      // revert only the dirty region in the temp canvas
+      // revert only the dirty region in the temp canvas.
+      // globalAlpha must be 1.0 so this is a clean copy, not an alpha-blended partial restore.
+      this.imageTempCtx.globalAlpha = 1.0;
       this.imageTempCtx.drawImage(
         this.paintedImageCanvas,
         clippedRect.x, clippedRect.y, clippedRect.width, clippedRect.height,
