@@ -67,6 +67,7 @@ class PainterApp {
   private guiState: {
     alpha0: number;
     alpha1: number;
+    batchSize: number;
     brush: number;
     image: string;
     usePalette: boolean;
@@ -78,6 +79,11 @@ class PainterApp {
   private diffBuffer = new Float32Array(0);
   private diffScratch = new Float32Array(0);
   private totalDiff = 0;
+
+  // current batch size used when adaptive mode (batchSize === 0) is active
+  private adaptiveBatchSize = BATCH_SIZE;
+  // stroke count at the last stats window — used instead of % 200 so any batch size works
+  private lastStatsStroke = 0;
 
   // accumulated ms for each phase, reset every stats window
   private tPlan = 0;
@@ -97,6 +103,7 @@ class PainterApp {
       usePalette: true,
       alpha0: 1,
       alpha1: 1,
+      batchSize: BATCH_SIZE,
     };
     this.brush = brushes[0];
     this.numStrokesTried = 0;
@@ -247,6 +254,7 @@ class PainterApp {
     // now we can start painting!
     this.numStrokesTried = 0;
     this.numStrokesKept = 0;
+    this.lastStatsStroke = 0;
     this.similarity = Number.MAX_VALUE;
     this.tPlan = 0;
     this.tBeforeCompare = 0;
@@ -319,6 +327,9 @@ class PainterApp {
 
     this.gui.add(this.guiState, "alpha0", 0, 1).name("Opacity Min");
     this.gui.add(this.guiState, "alpha1", 0, 1).name("Opacity Max");
+    this.gui
+      .add(this.guiState, "batchSize", 0, 200, 1)
+      .name("Stroke Batch Size (0=auto)");
 
     this.gui.add(this, "restartPainting").name("Restart");
   }
@@ -350,8 +361,11 @@ class PainterApp {
     const canvasW = this.paintedImageCanvas.width;
     const src = this.sourcePixels.data;
     const palette = this.guiState.usePalette ? this.palette : NO_PALETTE;
+    const batchSize = this.guiState.batchSize > 0
+      ? this.guiState.batchSize
+      : this.adaptiveBatchSize;
 
-    for (let batch = 0; batch < BATCH_SIZE; batch++) {
+    for (let batch = 0; batch < batchSize; batch++) {
       this.numStrokesTried += 1;
 
       let t0 = performance.now();
@@ -430,6 +444,7 @@ class PainterApp {
       this.tCommit += performance.now() - t4;
     }
 
+
     const TARGET = 0.1;
     if (this.play && this.similarity > TARGET) {
       this.updateStats();
@@ -440,35 +455,55 @@ class PainterApp {
   }
 
   private updateStats() {
-    if (this.numStrokesTried % 200 === 0) {
-      this.similarity = this.totalDiff;
+    const n = this.numStrokesTried - this.lastStatsStroke;
+    if (n < 200) return;
 
-      const n = 200;
-      const elapsedSec = (performance.now() - this.tFrameStart) / 1000;
-      const strokesPerSec = (n / elapsedSec).toFixed(1);
-      const fmt = (ms: number) => (ms / n).toFixed(3);
+    this.similarity = this.totalDiff;
+    this.lastStatsStroke = this.numStrokesTried;
 
-      this.statsEl.innerText = [
-        `Strokes: ${this.numStrokesKept}/${this.numStrokesTried} (${(100 * this.numStrokesKept / this.numStrokesTried).toFixed(1)}% kept)`,
-        `Similarity: ${this.similarity.toFixed(4)}`,
-        `Throughput: ${strokesPerSec} strokes/sec`,
-        `--- ms/stroke ---`,
-        `  plan:           ${fmt(this.tPlan)}`,
-        `  before compare: ${fmt(this.tBeforeCompare)}`,
-        `  paint:          ${fmt(this.tPaint)}`,
-        `  after compare:  ${fmt(this.tAfterCompare)}`,
-        `  commit:         ${fmt(this.tCommit)}`,
-      ].join("\n");
+    const elapsedSec = (performance.now() - this.tFrameStart) / 1000;
+    const strokesPerSec = (n / elapsedSec).toFixed(1);
+    const fmt = (ms: number) => (ms / n).toFixed(3);
 
-      // reset accumulators for the next window
-      this.tPlan = 0;
-      this.tBeforeCompare = 0;
-      this.tPaint = 0;
-      this.tAfterCompare = 0;
-      this.tCommit = 0;
-      this.tFrameStart = performance.now();
+    const effectiveBatch = this.guiState.batchSize > 0
+      ? this.guiState.batchSize
+      : this.adaptiveBatchSize;
+    const batchLabel = this.guiState.batchSize === 0
+      ? `${effectiveBatch} (auto)`
+      : `${effectiveBatch}`;
+
+    this.statsEl.innerText = [
+      `Strokes: ${this.numStrokesKept}/${this.numStrokesTried} (${(100 * this.numStrokesKept / this.numStrokesTried).toFixed(1)}% kept)`,
+      `Similarity: ${this.similarity.toFixed(4)}`,
+      `Throughput: ${strokesPerSec} strokes/sec`,
+      `Batch size: ${batchLabel}`,
+      `--- ms/stroke ---`,
+      `  plan:           ${fmt(this.tPlan)}`,
+      `  before compare: ${fmt(this.tBeforeCompare)}`,
+      `  paint:          ${fmt(this.tPaint)}`,
+      `  after compare:  ${fmt(this.tAfterCompare)}`,
+      `  commit:         ${fmt(this.tCommit)}`,
+    ].join("\n");
+
+    // Adaptive batch size: target 15ms of stroke work per frame.
+    // Computed from the precise per-stroke averages already measured above.
+    if (this.guiState.batchSize === 0) {
+      const TARGET_MS = 15;
+      const msPerStroke = (this.tPlan + this.tBeforeCompare + this.tPaint + this.tAfterCompare + this.tCommit) / n;
+      if (msPerStroke > 0) {
+        this.adaptiveBatchSize = Math.max(1, Math.round(TARGET_MS / msPerStroke));
+      }
     }
+
+    // reset accumulators for the next window
+    this.tPlan = 0;
+    this.tBeforeCompare = 0;
+    this.tPaint = 0;
+    this.tAfterCompare = 0;
+    this.tCommit = 0;
+    this.tFrameStart = performance.now();
   }
+
 }
 
 const mypainter = new PainterApp();
