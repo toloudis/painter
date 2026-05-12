@@ -21,7 +21,8 @@ const imageChoices = {
 };
 
 const CANVAS_SIZE = 300;
-const NO_PALETTE = [];
+const NO_PALETTE: Palette = [];
+const BATCH_SIZE = 50; // strokes computed per animation frame
 
 function clipRect(rect: Rectangle, canvas: HTMLCanvasElement): Rectangle {
   // clip bounds:
@@ -346,93 +347,88 @@ class PainterApp {
   }
 
   private iterate() {
-    this.numStrokesTried += 1;
-
-    let t0 = performance.now();
-
-    // 1. get region of planned brushstroke
-    const rect = this.brush.plan(
-      this.imageTempCtx,
-      this.guiState.usePalette ? this.palette : NO_PALETTE
-    );
-    const clippedRect = clipRect(rect, this.imageTemp);
-
-    if (clippedRect.width <= 0 || clippedRect.height <= 0) {
-      this.animationId = requestAnimationFrame(this.iterate);
-      return;
-    }
-
-    let t1 = performance.now();
-    this.tPlan += t1 - t0;
-
-    // 2. before diff: sum pre-computed buffer — no getImageData needed
-    const olddiff = this.sumRect(clippedRect);
-
-    let t2 = performance.now();
-    this.tBeforeCompare += t2 - t1;
-
-    // 3. apply brushstroke
-    this.imageTempCtx.globalAlpha =
-      Math.random() * Math.abs(this.guiState.alpha1 - this.guiState.alpha0) +
-      Math.min(this.guiState.alpha0, this.guiState.alpha1);
-    this.brush.paint(
-      this.imageTempCtx,
-      this.guiState.usePalette ? this.palette : NO_PALETTE
-    );
-
-    let t3 = performance.now();
-    this.tPaint += t3 - t2;
-
-    // 4. after diff: one getImageData, then inline pixel loop writing errors to diffScratch
-    const strokeImageData = this.imageTempCtx.getImageData(
-      clippedRect.x,
-      clippedRect.y,
-      clippedRect.width,
-      clippedRect.height
-    );
     const canvasW = this.paintedImageCanvas.width;
     const src = this.sourcePixels.data;
-    const sd = strokeImageData.data;
-    let newdiff = 0;
-    for (let y = 0; y < clippedRect.height; y++) {
-      for (let x = 0; x < clippedRect.width; x++) {
-        const si = 4 * (y * clippedRect.width + x);
-        const ri = 4 * ((y + clippedRect.y) * canvasW + (x + clippedRect.x));
-        const dr = sd[si]     / 255 - src[ri]     / 255;
-        const dg = sd[si + 1] / 255 - src[ri + 1] / 255;
-        const db = sd[si + 2] / 255 - src[ri + 2] / 255;
-        const err = dr * dr + dg * dg + db * db;
-        this.diffScratch[(y + clippedRect.y) * canvasW + (x + clippedRect.x)] = err;
-        newdiff += err;
+    const palette = this.guiState.usePalette ? this.palette : NO_PALETTE;
+
+    for (let batch = 0; batch < BATCH_SIZE; batch++) {
+      this.numStrokesTried += 1;
+
+      let t0 = performance.now();
+
+      // 1. get region of planned brushstroke
+      const rect = this.brush.plan(this.imageTempCtx, palette);
+      const clippedRect = clipRect(rect, this.imageTemp);
+
+      if (clippedRect.width <= 0 || clippedRect.height <= 0) {
+        continue;
       }
-    }
 
-    let t4 = performance.now();
-    this.tAfterCompare += t4 - t3;
+      let t1 = performance.now();
+      this.tPlan += t1 - t0;
 
-    // 5. accept or reject
-    if (newdiff < olddiff) {
-      // commit: flush diffScratch → diffBuffer for this rect, update running total
-      for (let y = clippedRect.y; y < clippedRect.y + clippedRect.height; y++) {
-        for (let x = clippedRect.x; x < clippedRect.x + clippedRect.width; x++) {
-          this.diffBuffer[y * canvasW + x] = this.diffScratch[y * canvasW + x];
+      // 2. before diff: sum pre-computed buffer — no getImageData needed
+      const olddiff = this.sumRect(clippedRect);
+
+      let t2 = performance.now();
+      this.tBeforeCompare += t2 - t1;
+
+      // 3. apply brushstroke
+      this.imageTempCtx.globalAlpha =
+        Math.random() * Math.abs(this.guiState.alpha1 - this.guiState.alpha0) +
+        Math.min(this.guiState.alpha0, this.guiState.alpha1);
+      this.brush.paint(this.imageTempCtx, palette);
+
+      let t3 = performance.now();
+      this.tPaint += t3 - t2;
+
+      // 4. after diff: one getImageData, then inline pixel loop writing errors to diffScratch
+      const strokeImageData = this.imageTempCtx.getImageData(
+        clippedRect.x,
+        clippedRect.y,
+        clippedRect.width,
+        clippedRect.height
+      );
+      const sd = strokeImageData.data;
+      let newdiff = 0;
+      for (let y = 0; y < clippedRect.height; y++) {
+        for (let x = 0; x < clippedRect.width; x++) {
+          const si = 4 * (y * clippedRect.width + x);
+          const ri = 4 * ((y + clippedRect.y) * canvasW + (x + clippedRect.x));
+          const dr = sd[si]     / 255 - src[ri]     / 255;
+          const dg = sd[si + 1] / 255 - src[ri + 1] / 255;
+          const db = sd[si + 2] / 255 - src[ri + 2] / 255;
+          const err = dr * dr + dg * dg + db * db;
+          this.diffScratch[(y + clippedRect.y) * canvasW + (x + clippedRect.x)] = err;
+          newdiff += err;
         }
       }
-      this.totalDiff += newdiff - olddiff;
-      this.paintedImageCtx.putImageData(strokeImageData, clippedRect.x, clippedRect.y);
-      this.numStrokesKept += 1;
-    } else {
-      // revert only the dirty region in the temp canvas.
-      // globalAlpha must be 1.0 so this is a clean copy, not an alpha-blended partial restore.
-      this.imageTempCtx.globalAlpha = 1.0;
-      this.imageTempCtx.drawImage(
-        this.paintedImageCanvas,
-        clippedRect.x, clippedRect.y, clippedRect.width, clippedRect.height,
-        clippedRect.x, clippedRect.y, clippedRect.width, clippedRect.height
-      );
-    }
 
-    this.tCommit += performance.now() - t4;
+      let t4 = performance.now();
+      this.tAfterCompare += t4 - t3;
+
+      // 5. accept or reject
+      if (newdiff < olddiff) {
+        for (let y = clippedRect.y; y < clippedRect.y + clippedRect.height; y++) {
+          for (let x = clippedRect.x; x < clippedRect.x + clippedRect.width; x++) {
+            this.diffBuffer[y * canvasW + x] = this.diffScratch[y * canvasW + x];
+          }
+        }
+        this.totalDiff += newdiff - olddiff;
+        this.paintedImageCtx.putImageData(strokeImageData, clippedRect.x, clippedRect.y);
+        this.numStrokesKept += 1;
+      } else {
+        // globalAlpha must be 1.0 so this is a clean copy, not an alpha-blended partial restore.
+        this.imageTempCtx.globalAlpha = 1.0;
+        this.imageTempCtx.drawImage(
+          this.paintedImageCanvas,
+          clippedRect.x, clippedRect.y, clippedRect.width, clippedRect.height,
+          clippedRect.x, clippedRect.y, clippedRect.width, clippedRect.height
+        );
+      }
+
+      this.tCommit += performance.now() - t4;
+    }
 
     const TARGET = 0.1;
     if (this.play && this.similarity > TARGET) {
