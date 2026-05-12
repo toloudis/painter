@@ -74,6 +74,14 @@ class PainterApp {
   private brush: Brush;
   private animationId: number;
 
+  // accumulated ms for each phase, reset every stats window
+  private tPlan = 0;
+  private tBeforeCompare = 0;
+  private tPaint = 0;
+  private tAfterCompare = 0;
+  private tCommit = 0;
+  private tFrameStart = 0;
+
   public constructor() {
     this.play = false;
     this.animationId = 0;
@@ -240,6 +248,12 @@ class PainterApp {
     this.numStrokesTried = 0;
     this.numStrokesKept = 0;
     this.similarity = Number.MAX_VALUE;
+    this.tPlan = 0;
+    this.tBeforeCompare = 0;
+    this.tPaint = 0;
+    this.tAfterCompare = 0;
+    this.tCommit = 0;
+    this.tFrameStart = performance.now();
 
     this.play = true;
     this.iterate();
@@ -303,7 +317,8 @@ class PainterApp {
   private iterate() {
     this.numStrokesTried += 1;
 
-    // optimize for similarity check:
+    let t0 = performance.now();
+
     // 1. get region of planned brushstroke
     const rect = this.brush.plan(
       this.imageTempCtx,
@@ -311,12 +326,13 @@ class PainterApp {
     );
     const clippedRect = clipRect(rect, this.imageTemp);
 
-    // if the clipped rect is empty, skip this iteration
     if (clippedRect.width <= 0 || clippedRect.height <= 0) {
-      //this.updateStats();
       this.animationId = requestAnimationFrame(this.iterate);
       return;
     }
+
+    let t1 = performance.now();
+    this.tPlan += t1 - t0;
 
     // 2. check similarity of painted image before brushstroke
     const olddiff = compareSubRegion2(
@@ -330,6 +346,9 @@ class PainterApp {
       clippedRect
     );
 
+    let t2 = performance.now();
+    this.tBeforeCompare += t2 - t1;
+
     // 3. apply brushstroke
     this.imageTempCtx.globalAlpha =
       Math.random() * Math.abs(this.guiState.alpha1 - this.guiState.alpha0) +
@@ -338,6 +357,9 @@ class PainterApp {
       this.imageTempCtx,
       this.guiState.usePalette ? this.palette : NO_PALETTE
     );
+
+    let t3 = performance.now();
+    this.tPaint += t3 - t2;
 
     // 4. check similarity of painted image after brushstroke
     const strokeImageData = this.imageTempCtx.getImageData(
@@ -352,6 +374,9 @@ class PainterApp {
       clippedRect
     );
 
+    let t4 = performance.now();
+    this.tAfterCompare += t4 - t3;
+
     // 5. if similarity is improved, keep the stroke, else discard it
     if (newdiff < olddiff) {
       this.paintedImageCtx.putImageData(strokeImageData, clippedRect.x, clippedRect.y);
@@ -364,6 +389,8 @@ class PainterApp {
         clippedRect.x, clippedRect.y, clippedRect.width, clippedRect.height
       );
     }
+
+    this.tCommit += performance.now() - t4;
 
     const TARGET = 0.1;
     if (this.play && this.similarity > TARGET) {
@@ -386,16 +413,30 @@ class PainterApp {
         this.sourcePixels
       );
 
-      // update the text readout.
-      this.statsEl.innerText =
-        "Brushstrokes: " +
-        this.numStrokesKept +
-        "/" +
-        this.numStrokesTried +
-        "=" +
-        this.numStrokesKept / this.numStrokesTried +
-        "\nSimilarity: " +
-        this.similarity;
+      const n = 200;
+      const elapsedSec = (performance.now() - this.tFrameStart) / 1000;
+      const strokesPerSec = (n / elapsedSec).toFixed(1);
+      const fmt = (ms: number) => (ms / n).toFixed(3);
+
+      this.statsEl.innerText = [
+        `Strokes: ${this.numStrokesKept}/${this.numStrokesTried} (${(100 * this.numStrokesKept / this.numStrokesTried).toFixed(1)}% kept)`,
+        `Similarity: ${this.similarity.toFixed(4)}`,
+        `Throughput: ${strokesPerSec} strokes/sec`,
+        `--- ms/stroke ---`,
+        `  plan:           ${fmt(this.tPlan)}`,
+        `  before compare: ${fmt(this.tBeforeCompare)}`,
+        `  paint:          ${fmt(this.tPaint)}`,
+        `  after compare:  ${fmt(this.tAfterCompare)}`,
+        `  commit:         ${fmt(this.tCommit)}`,
+      ].join("\n");
+
+      // reset accumulators for the next window
+      this.tPlan = 0;
+      this.tBeforeCompare = 0;
+      this.tPaint = 0;
+      this.tAfterCompare = 0;
+      this.tCommit = 0;
+      this.tFrameStart = performance.now();
     }
   }
 }
